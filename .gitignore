@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+recorder/sessions/*.bin
+recorder/sessions/*.json
+.DS_Store
+Thumbs.db

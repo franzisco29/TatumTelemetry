@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  f1-telemetry:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "20001-20010:20001-20010/udp"
+    volumes:
+      - ./recorder/sessions:/app/recorder/sessions
+    env_file:
+      - .env
