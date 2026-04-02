@@ -3,6 +3,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from relay.auth import create_token, verify_token
 
+import logging
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="F1 Telemetry API")
 bearer = HTTPBearer()
 
@@ -41,9 +44,12 @@ def register_engineer(
 ):
     verify_token(creds.credentials)
     port = req.pilot_port
+    logger.info(f"Porte disponibili: {list(relay_engineers.keys())}")
     if port not in relay_engineers:
         raise HTTPException(status_code=404, detail=f"Porta {port} non esistente")
     relay_engineers[port].add((req.engineer_ip, req.engineer_port))
+    logger.info(f"Ingegnere {req.engineer_ip}:{req.engineer_port} registrato su porta {port}")
+    logger.info(f"Ingegneri attivi su porta {port}: {relay_engineers[port]}")
     return {"message": f"Registrato su pilota porta {port}"}
 
 @app.delete("/engineer/unregister")

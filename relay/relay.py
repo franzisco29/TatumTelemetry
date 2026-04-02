@@ -32,5 +32,8 @@ class F1UDPProtocol(asyncio.DatagramProtocol):
 
     def datagram_received(self, data: bytes, addr: tuple):
         logger.info(f"Pacchetto ricevuto da {addr} sulla porta {self.port} - {len(data)} bytes")
-        for eng_addr in self.engineers.get(self.port, set()):
+        engineers = self.engineers.get(self.port, set())
+        logger.info(f"Ingegneri registrati su porta {self.port}: {engineers}")
+        for eng_addr in engineers:
+            logger.info(f"Invio a {eng_addr}")
             self.transport.sendto(data, eng_addr)
