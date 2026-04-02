@@ -6,16 +6,24 @@ from relay.auth import create_token, verify_token
 app = FastAPI(title="F1 Telemetry API")
 bearer = HTTPBearer()
 
+# Riferimento agli engineers del relay - viene impostato da main.py
+relay_engineers = {}
+
 class LoginRequest(BaseModel):
     username: str
     password: str
-    role: str  # "pilot" o "engineer"
+    role: str
 
-# Utenti hardcoded per ora - in futuro: database
+class EngineerRegisterRequest(BaseModel):
+    pilot_port: int
+    engineer_ip: str
+    engineer_port: int
+
+# Utenti hardcoded per ora
 USERS = {
-    "pilot1":    {"password": "CAMBIA", "role": "pilot"},
-    "pilot2":    {"password": "CAMBIA", "role": "pilot"},
-    "engineer1": {"password": "CAMBIA", "role": "engineer"},
+    "pilot1":    {"password": "Tatum2024", "role": "pilot"},
+    "pilot2":    {"password": "Tatum2024", "role": "pilot"},
+    "engineer1": {"password": "Tatum2024", "role": "engineer"},
 }
 
 @app.post("/auth/login")
@@ -26,6 +34,28 @@ def login(req: LoginRequest):
     token = create_token(req.username, user["role"])
     return {"token": token}
 
+@app.post("/engineer/register")
+def register_engineer(
+    req: EngineerRegisterRequest,
+    creds: HTTPAuthorizationCredentials = Depends(bearer)
+):
+    verify_token(creds.credentials)
+    port = req.pilot_port
+    if port not in relay_engineers:
+        raise HTTPException(status_code=404, detail=f"Porta {port} non esistente")
+    relay_engineers[port].add((req.engineer_ip, req.engineer_port))
+    return {"message": f"Registrato su pilota porta {port}"}
+
+@app.delete("/engineer/unregister")
+def unregister_engineer(
+    req: EngineerRegisterRequest,
+    creds: HTTPAuthorizationCredentials = Depends(bearer)
+):
+    verify_token(creds.credentials)
+    port = req.pilot_port
+    relay_engineers.get(port, set()).discard((req.engineer_ip, req.engineer_port))
+    return {"message": "Disconnesso"}
+
 @app.get("/pilots")
 def get_pilots(creds: HTTPAuthorizationCredentials = Depends(bearer)):
     verify_token(creds.credentials)
@@ -34,8 +64,9 @@ def get_pilots(creds: HTTPAuthorizationCredentials = Depends(bearer)):
 @app.get("/sessions")
 def get_sessions(creds: HTTPAuthorizationCredentials = Depends(bearer)):
     verify_token(creds.credentials)
-    # TODO: lista file da recorder/sessions/
     return {"sessions": []}
 
-def create_app():
+def create_app(engineers: dict):
+    global relay_engineers
+    relay_engineers = engineers
     return app

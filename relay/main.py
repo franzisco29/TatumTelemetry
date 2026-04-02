@@ -18,7 +18,8 @@ async def main():
     relay = F1RelayServer(config)
     await relay.start()
 
-    app = create_app()
+    # Passa il dizionario engineers all'API
+    app = create_app(relay.engineers)
     server = uvicorn.Server(uvicorn.Config(
         app,
         host=config.API_HOST,
