@@ -277,6 +277,70 @@ def get_sessions(user=Depends(get_current_user), db: Session = Depends(get_db)):
         } for s in sessions
     ]}
 
+
+class UpdateProfileRequest(BaseModel):
+    username: Optional[str] = None
+    password: Optional[str] = None
+    platform: Optional[str] = None
+
+class AdminUpdateUserRequest(BaseModel):
+    username: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+    is_admin: Optional[bool] = None
+    is_active: Optional[bool] = None
+    platform: Optional[str] = None
+    team_category: Optional[str] = None
+
+@app.patch("/auth/profile")
+def update_profile(
+    req: UpdateProfileRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    updates = {}
+    if req.username:
+        existing = crud.get_user_by_username(db, req.username)
+        if existing and existing.id != user.id:
+            raise HTTPException(status_code=400, detail="Username già in uso")
+        updates["username"] = req.username
+    if req.platform:
+        updates["platform"] = req.platform
+    if req.password:
+        import bcrypt
+        updates["password_hash"] = bcrypt.hashpw(
+            req.password.encode(), bcrypt.gensalt()
+        ).decode()
+    crud.update_user(db, user.id, **updates)
+    return {"message": "Profilo aggiornato"}
+
+@app.patch("/admin/users/{user_id}/full")
+def admin_update_user(
+    user_id: int,
+    req: AdminUpdateUserRequest,
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    updates = {}
+    if req.username:
+        existing = crud.get_user_by_username(db, req.username)
+        if existing and existing.id != user_id:
+            raise HTTPException(status_code=400, detail="Username già in uso")
+        updates["username"] = req.username
+    if req.password:
+        import bcrypt
+        updates["password_hash"] = bcrypt.hashpw(
+            req.password.encode(), bcrypt.gensalt()
+        ).decode()
+    if req.role is not None: updates["role"] = req.role
+    if req.is_admin is not None: updates["is_admin"] = req.is_admin
+    if req.is_active is not None: updates["is_active"] = req.is_active
+    if req.platform is not None: updates["platform"] = req.platform
+    if req.team_category is not None: updates["team_category"] = req.team_category
+    crud.update_user(db, user_id, **updates)
+    return {"message": "Utente aggiornato"}
+
+
 def create_app(clients: dict):
     global relay_clients
     relay_clients = clients
