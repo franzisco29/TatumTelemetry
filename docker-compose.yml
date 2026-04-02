@@ -1,13 +1,32 @@
-version: "3.9"
-
 services:
   f1-telemetry:
     build: .
     restart: unless-stopped
     ports:
       - "30001-30010:30001-30010"
-      - "20001-20010:20001-20010/udp"
+      - "20001-20100:20001-20100/udp"
     volumes:
       - ./recorder/sessions:/app/recorder/sessions
     env_file:
       - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -8,12 +8,17 @@ sys.path.insert(0, '/app')
 from relay.relay import F1RelayServer
 from relay.config import Config
 from api.api import create_app
+from database.database import init_db
 import uvicorn
 
 logging.basicConfig(level=logging.INFO)
 
 async def main():
     config = Config()
+
+    # Inizializza database
+    init_db()
+    logging.info("Database inizializzato")
 
     relay = F1RelayServer(config)
     await relay.start()
