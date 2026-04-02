@@ -1,28 +1,21 @@
-from fastapi import FastAPI, HTTPException, Depends
+import logging
+from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from relay.auth import create_token, verify_token
 
-import logging
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="F1 Telemetry API")
 bearer = HTTPBearer()
 
-# Riferimento agli engineers del relay - viene impostato da main.py
-relay_engineers = {}
+relay_clients = {}
 
 class LoginRequest(BaseModel):
     username: str
     password: str
     role: str
 
-class EngineerRegisterRequest(BaseModel):
-    pilot_port: int
-    engineer_ip: str
-    engineer_port: int
-
-# Utenti hardcoded per ora
 USERS = {
     "pilot1":    {"password": "Tatum2024", "role": "pilot"},
     "pilot2":    {"password": "Tatum2024", "role": "pilot"},
@@ -37,42 +30,30 @@ def login(req: LoginRequest):
     token = create_token(req.username, user["role"])
     return {"token": token}
 
-@app.post("/engineer/register")
-def register_engineer(
-    req: EngineerRegisterRequest,
-    creds: HTTPAuthorizationCredentials = Depends(bearer)
-):
-    verify_token(creds.credentials)
-    port = req.pilot_port
-    logger.info(f"Porte disponibili: {list(relay_engineers.keys())}")
-    if port not in relay_engineers:
-        raise HTTPException(status_code=404, detail=f"Porta {port} non esistente")
-    relay_engineers[port].add((req.engineer_ip, req.engineer_port))
-    logger.info(f"Ingegnere {req.engineer_ip}:{req.engineer_port} registrato su porta {port}")
-    logger.info(f"Ingegneri attivi su porta {port}: {relay_engineers[port]}")
-    return {"message": f"Registrato su pilota porta {port}"}
-
-@app.delete("/engineer/unregister")
-def unregister_engineer(
-    req: EngineerRegisterRequest,
-    creds: HTTPAuthorizationCredentials = Depends(bearer)
-):
-    verify_token(creds.credentials)
-    port = req.pilot_port
-    relay_engineers.get(port, set()).discard((req.engineer_ip, req.engineer_port))
-    return {"message": "Disconnesso"}
-
 @app.get("/pilots")
 def get_pilots(creds: HTTPAuthorizationCredentials = Depends(bearer)):
     verify_token(creds.credentials)
     return {"pilots": list(USERS.keys())}
 
-@app.get("/sessions")
-def get_sessions(creds: HTTPAuthorizationCredentials = Depends(bearer)):
-    verify_token(creds.credentials)
-    return {"sessions": []}
+@app.websocket("/ws/{pilot_port}")
+async def websocket_endpoint(websocket: WebSocket, pilot_port: int):
+    if pilot_port not in relay_clients:
+        await websocket.close(code=1008)
+        return
 
-def create_app(engineers: dict):
-    global relay_engineers
-    relay_engineers = engineers
+    await websocket.accept()
+    relay_clients[pilot_port].add(websocket)
+    logger.info(f"Ingegnere connesso su porta {pilot_port} - totale: {len(relay_clients[pilot_port])}")
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        relay_clients[pilot_port].discard(websocket)
+        logger.info(f"Ingegnere disconnesso da porta {pilot_port}")
+
+
+def create_app(clients: dict):
+    global relay_clients
+    relay_clients = clients
     return app
