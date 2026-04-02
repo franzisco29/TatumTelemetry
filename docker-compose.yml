@@ -5,7 +5,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "30001-30010:30001-30010"
       - "20001-20010:20001-20010/udp"
     volumes:
       - ./recorder/sessions:/app/recorder/sessions

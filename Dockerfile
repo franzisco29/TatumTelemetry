@@ -7,4 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "relay/main.py"]
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "relay.main"]
