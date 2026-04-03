@@ -16,13 +16,14 @@ def get_all_users(db: Session):
 
 def create_user(db: Session, username: str, password: str, role: str,
                 is_admin: bool = False, platform: str = None,
-                team_category: str = None):
+                team_category: str = None, is_superuser: bool = False):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     user = User(
         username=username,
         password_hash=hashed,
         role=role,
         is_admin=is_admin,
+        is_superuser=is_superuser,
         platform=platform,
         team_category=team_category
     )

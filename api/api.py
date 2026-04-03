@@ -8,6 +8,8 @@ from relay.auth import create_token, verify_token
 from database.database import get_db
 from database import crud
 from sqlalchemy.orm import Session
+from database.database import get_db, SessionLocal
+import bcrypt
 
 logger = logging.getLogger(__name__)
 
@@ -247,14 +249,23 @@ async def websocket_endpoint(websocket: WebSocket, pilot_port: int):
         return
     await websocket.accept()
     relay_clients[pilot_port].add(websocket)
-    logger.info(f"Ingegnere connesso su porta {pilot_port} - totale: {len(relay_clients[pilot_port])}")
+    logger.info(f"Ingegnere connesso su porta {pilot_port}")
+
+    # Log nel DB
+    db = SessionLocal()
+    conn_log = crud.log_connection(db, user_id=None, driver_port=pilot_port)
+    db.close()
+
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         relay_clients[pilot_port].discard(websocket)
+        # Chiudi log
+        db = SessionLocal()
+        crud.close_connection(db, conn_log.id)
+        db.close()
         logger.info(f"Ingegnere disconnesso da porta {pilot_port}")
-
 # ── SESSIONS ───────────────────────────────────────
 
 @app.get("/sessions")
@@ -321,6 +332,12 @@ def admin_update_user(
     admin=Depends(require_admin),
     db: Session = Depends(get_db)
 ):
+    target = crud.get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Utente non trovato")
+    # Superuser modificabile solo da se stesso
+    if target.is_superuser and admin.id != target.id:
+        raise HTTPException(status_code=403, detail="Non puoi modificare il superuser")
     updates = {}
     if req.username:
         existing = crud.get_user_by_username(db, req.username)
@@ -339,6 +356,37 @@ def admin_update_user(
     if req.team_category is not None: updates["team_category"] = req.team_category
     crud.update_user(db, user_id, **updates)
     return {"message": "Utente aggiornato"}
+
+@app.get("/driver/status")
+def driver_status(user=Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role != "driver":
+        raise HTTPException(status_code=403, detail="Solo per driver")
+    dp = crud.get_port_by_user(db, user.id)
+    if not dp:
+        return {"online": False, "engineers_connected": 0, "port": None}
+    port = dp.port
+    engineers = len(relay_clients.get(port, set()))
+    online = port in relay_clients and engineers > 0
+    return {
+        "online": online,
+        "engineers_connected": engineers,
+        "port": port
+    }
+
+class ResetPasswordRequest(BaseModel):
+    username: str
+    old_password: str
+    new_password: str
+
+@app.post("/auth/reset-password")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = crud.get_user_by_username(db, req.username)
+    if not user or not crud.verify_password(req.old_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Credenziali non valide")
+    import bcrypt
+    new_hash = bcrypt.hashpw(req.new_password.encode(), bcrypt.gensalt()).decode()
+    crud.update_user(db, user.id, password_hash=new_hash)
+    return {"message": "Password aggiornata"}
 
 
 def create_app(clients: dict):

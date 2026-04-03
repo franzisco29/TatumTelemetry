@@ -16,12 +16,13 @@ def main():
 
     user = crud.create_user(
         db,
-        username="adminUser",
-        password="Admin$TRT24",
+        username="admin",
+        password="Admin2024!",
         role="engineer",
-        is_admin=True
+        is_admin=True,
+        is_superuser=True
     )
-    print(f"✓ Admin creato! ID: {user.id} - Username: adminUser - Password: Admin$TRT24")
+    print(f"✓ Superuser creato! ID: {user.id}")
     db.close()
 
 if __name__ == "__main__":

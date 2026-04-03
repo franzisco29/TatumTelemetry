@@ -30,6 +30,7 @@ class User(Base):
     password_hash   = Column(String(255), nullable=False)
     role            = Column(Enum(RoleEnum), nullable=False)
     is_admin        = Column(Boolean, default=False)
+    is_superuser = Column(Boolean, default=False)
     platform        = Column(Enum(PlatformEnum), nullable=True)
     team_category   = Column(Enum(TeamCategoryEnum), nullable=True)
     is_active       = Column(Boolean, default=True)
