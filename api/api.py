@@ -131,6 +131,7 @@ def get_users(admin=Depends(require_admin), db: Session = Depends(get_db)):
             "username": u.username,
             "role": u.role,
             "is_admin": u.is_admin,
+            "is_superuser": u.is_superuser,
             "is_active": u.is_active,
             "platform": u.platform,
             "team_category": u.team_category,
@@ -355,6 +356,14 @@ def admin_update_user(
     if req.platform is not None: updates["platform"] = req.platform
     if req.team_category is not None: updates["team_category"] = req.team_category
     crud.update_user(db, user_id, **updates)
+
+    # Assegna porta se diventa driver e non ne ha già una
+    if req.role == "driver":
+        existing_port = crud.get_port_by_user(db, user_id)
+        if not existing_port:
+            port = crud.get_next_available_port(db)
+            crud.assign_port(db, user_id, port)
+
     return {"message": "Utente aggiornato"}
 
 @app.get("/driver/status")

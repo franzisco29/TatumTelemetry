@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import API from '../api'
+import { VERSION } from '../version'
 import ProfileModal from '../components/ProfileModal'
 import TatumLogo from '../components/TatumLogo'
 
@@ -10,6 +12,23 @@ export default function DriverDashboard() {
   const [showProfile, setShowProfile]   = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef(null)
+
+  const [status, setStatus] = useState({ online: false, engineers_connected: 0 })
+
+  useEffect(() => {
+    fetchStatus()
+    const iv = setInterval(fetchStatus, 5000)
+    return () => clearInterval(iv)
+  }, [])
+
+  const fetchStatus = async () => {
+    try {
+      const res = await API.get('/driver/status')
+      setStatus(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const handleLogout = () => { logout(); navigate('/login') }
 
@@ -93,6 +112,36 @@ export default function DriverDashboard() {
           </div>
         </div>
 
+        {/* Status online */}
+        <div
+          className="rounded-md px-5 py-4 mb-5 flex items-center justify-between"
+          style={{
+            background: status.online ? '#0d1f0d' : '#1c1c1c',
+            border: '1px solid ' + (status.online ? 'rgba(0,192,0,0.25)' : '#2a2a2a')
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={'w-2.5 h-2.5 rounded-full shrink-0' + (status.online ? ' dot-online' : '')}
+              style={{ background: status.online ? '#00c000' : '#333' }}
+            />
+            <div>
+              <p className="text-sm font-medium" style={{ color: status.online ? '#00c000' : '#555' }}>
+                {status.online ? 'Transmitting' : 'Not transmitting'}
+              </p>
+              <p className="text-xs text-[#555] mt-0.5">
+                {status.online ? `${status.engineers_connected} engineer${status.engineers_connected !== 1 ? 's' : ''} connected` : 'No active session'}
+              </p>
+            </div>
+          </div>
+          {status.online && (
+            <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider"
+              style={{ background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }}>
+              Live
+            </span>
+          )}
+        </div>
+
         {/* Info grid */}
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="bg-[#222] border border-[#333] rounded-md p-4">
@@ -123,6 +172,10 @@ export default function DriverDashboard() {
             ))}
           </div>
         )}
+
+        <p className="text-center text-[#2e2e2e] text-[10px] uppercase tracking-widest mt-10">
+          Tatum RES Tech — Telemetry System v{VERSION}
+        </p>
       </div>
     </div>
   )

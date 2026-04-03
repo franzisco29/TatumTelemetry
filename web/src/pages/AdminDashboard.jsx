@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { VERSION } from '../version'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
@@ -96,6 +97,12 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-5">
+          {user?.role === 'driver' && (
+            <button
+              onClick={() => navigate('/driver')}
+              className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
+            >Driver Panel</button>
+          )}
           {user?.role === 'engineer' && (
             <button
               onClick={() => navigate('/engineer')}
@@ -308,10 +315,14 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <button
-                          onClick={() => setEditUser(u)}
-                          className="text-[11px] text-[#666] hover:text-white transition-colors uppercase tracking-wider"
-                        >Edit</button>
+                        {u.is_superuser && user.id !== u.id ? (
+                          <span className="text-[11px] text-[#333] uppercase tracking-wider">Protected</span>
+                        ) : (
+                          <button
+                            onClick={() => setEditUser(u)}
+                            className="text-[11px] text-[#666] hover:text-white transition-colors uppercase tracking-wider"
+                          >Edit</button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -372,6 +383,10 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        <p className="text-center text-[#2e2e2e] text-[10px] uppercase tracking-widest mt-10">
+          Tatum RES Tech — Telemetry System v{VERSION}
+        </p>
       </div>
     </div>
   )

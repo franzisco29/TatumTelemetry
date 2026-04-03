@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from 'react'
+import { VERSION } from '../version'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
@@ -253,7 +254,7 @@ export default function EngineerDashboard() {
         )}
 
         <p className="text-center text-[#2e2e2e] text-[10px] uppercase tracking-widest mt-10">
-          Tatum RES Tech -- Telemetry System
+          Tatum RES Tech — Telemetry System v{VERSION}
         </p>
       </div>
     </div>
