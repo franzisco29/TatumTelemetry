@@ -23,7 +23,7 @@ async def main():
     relay = F1RelayServer(config)
     await relay.start()
 
-    app = create_app(relay.websocket_clients)
+    app = create_app(relay.websocket_clients, relay.last_packet)
     server = uvicorn.Server(uvicorn.Config(
         app,
         host=config.API_HOST,

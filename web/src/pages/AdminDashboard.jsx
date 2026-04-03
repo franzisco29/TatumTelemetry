@@ -23,6 +23,9 @@ export default function AdminDashboard() {
   const [newDivision, setNewDivision]   = useState({ name: '', simulator: '' })
   const [assign, setAssign]             = useState({ user_id: '', division_id: '' })
   const [message, setMessage]           = useState('')
+  const [selectedDivision, setSelectedDivision] = useState(null)
+  const [divisionData, setDivisionData]         = useState(null)
+  const [divisionLoading, setDivisionLoading]   = useState(false)
 
   const [filterRole, setFilterRole]         = useState('all')
   const [filterDivision, setFilterDivision] = useState('all')
@@ -55,6 +58,17 @@ export default function AdminDashboard() {
   }
 
   const handleLogout = () => { logout(); navigate('/login') }
+
+  const openDivision = async (d) => {
+    setSelectedDivision(d)
+    setDivisionData(null)
+    setDivisionLoading(true)
+    try {
+      const r = await API.get(`/admin/divisions/${d.id}/members`)
+      setDivisionData(r.data)
+    } catch {}
+    finally { setDivisionLoading(false) }
+  }
 
   useEffect(() => {
     const fn = (e) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false) }
@@ -324,6 +338,140 @@ export default function AdminDashboard() {
         {/* ── TAB DIVISIONI ───────────────────────────── */}
         {tab === 'divisions' && (
           <div>
+            {selectedDivision ? (
+              // ── Vista dettaglio divisione ──────────────
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <button
+                      onClick={() => { setSelectedDivision(null); setDivisionData(null) }}
+                      className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors mb-2 block"
+                    >← Tutte le divisioni</button>
+                    <h2 className="text-lg font-bold">{selectedDivision.name}</h2>
+                    <p className="text-[#555] text-xs mt-0.5">{selectedDivision.simulator}</p>
+                  </div>
+                </div>
+
+                {divisionLoading ? (
+                  <div className="text-center py-16">
+                    <div className="w-5 h-5 border-2 border-[#f60300] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-xs uppercase tracking-widest text-[#555]">Loading...</p>
+                  </div>
+                ) : divisionData && (() => {
+                  const drivers   = divisionData.members.filter(m => m.role === 'driver')
+                  const engineers = divisionData.members.filter(m => m.role === 'engineer')
+                  return (
+                    <>
+                      {/* Stats */}
+                      <div className="grid grid-cols-3 gap-4 mb-8">
+                        <div className="bg-[#222] border border-[#333] rounded-md p-5 text-center">
+                          <p className="text-2xl font-bold font-mono">{divisionData.members.length}</p>
+                          <p className="lbl mt-1">Totale membri</p>
+                        </div>
+                        <div className="bg-[#222] border border-[#333] rounded-md p-5 text-center">
+                          <p className="text-2xl font-bold font-mono text-[#f60300]">{drivers.length}</p>
+                          <p className="lbl mt-1">Driver</p>
+                        </div>
+                        <div className="bg-[#222] border border-[#333] rounded-md p-5 text-center">
+                          <p className="text-2xl font-bold font-mono text-[#888]">{engineers.length}</p>
+                          <p className="lbl mt-1">Ingegneri</p>
+                        </div>
+                      </div>
+
+                      {/* Drivers */}
+                      {drivers.length > 0 && (
+                        <div className="mb-6">
+                          <p className="lbl mb-3">Driver</p>
+                          <div className="bg-[#222] border border-[#333] rounded-md overflow-hidden">
+                            <table className="w-full">
+                              <thead>
+                                <tr style={{ background: '#1c1c1c', borderBottom: '1px solid #333' }}>
+                                  {['Username', 'Team', 'Piattaforma', 'Porta', 'Stato'].map(h => (
+                                    <th key={h} className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#555]">{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {drivers.map((m, i) => (
+                                  <tr key={m.id} className="transition-colors hover:bg-[#282828]"
+                                    style={{ borderBottom: i < drivers.length - 1 ? '1px solid #2a2a2a' : 'none' }}>
+                                    <td className="px-5 py-3.5">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium text-sm">{m.username}</span>
+                                        {m.is_admin && (
+                                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                            style={{ background: '#1e0a2a', color: '#b61bdb', border: '1px solid rgba(182,27,219,0.25)' }}>Admin</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-5 py-3.5 text-[#666] text-sm">{m.team_category || '—'}</td>
+                                    <td className="px-5 py-3.5 text-[#666] text-sm">{m.platform || '—'}</td>
+                                    <td className="px-5 py-3.5 font-mono text-sm text-[#555]">{m.port || '—'}</td>
+                                    <td className="px-5 py-3.5">
+                                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded"
+                                        style={m.is_active
+                                          ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
+                                          : { background: '#202020', color: '#555', border: '1px solid #333' }}>
+                                        {m.is_active ? 'Attivo' : 'Disabilitato'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Engineers */}
+                      {engineers.length > 0 && (
+                        <div>
+                          <p className="lbl mb-3">Ingegneri</p>
+                          <div className="bg-[#222] border border-[#333] rounded-md overflow-hidden">
+                            <table className="w-full">
+                              <thead>
+                                <tr style={{ background: '#1c1c1c', borderBottom: '1px solid #333' }}>
+                                  {['Username', 'Piattaforma', 'Stato'].map(h => (
+                                    <th key={h} className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#555]">{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {engineers.map((m, i) => (
+                                  <tr key={m.id} className="transition-colors hover:bg-[#282828]"
+                                    style={{ borderBottom: i < engineers.length - 1 ? '1px solid #2a2a2a' : 'none' }}>
+                                    <td className="px-5 py-3.5">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium text-sm">{m.username}</span>
+                                        {m.is_admin && (
+                                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                            style={{ background: '#1e0a2a', color: '#b61bdb', border: '1px solid rgba(182,27,219,0.25)' }}>Admin</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-5 py-3.5 text-[#666] text-sm">{m.platform || '—'}</td>
+                                    <td className="px-5 py-3.5">
+                                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded"
+                                        style={m.is_active
+                                          ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
+                                          : { background: '#202020', color: '#555', border: '1px solid #333' }}>
+                                        {m.is_active ? 'Attivo' : 'Disabilitato'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+            ) : (
+              // ── Lista divisioni ────────────────────────
+              <>
             <div className="flex justify-between items-center mb-5">
               <p className="lbl">Divisioni registrate</p>
               <button onClick={() => setShowCreateDivision(v => !v)} className={btnPri}>
@@ -352,7 +500,8 @@ export default function AdminDashboard() {
               {divisions.map((d, i) => (
                 <div
                   key={d.id}
-                  className="flex items-center justify-between px-5 py-4 hover:bg-[#282828] transition-colors"
+                  onDoubleClick={() => openDivision(d)}
+                  className="flex items-center justify-between px-5 py-4 hover:bg-[#282828] transition-colors cursor-pointer"
                   style={{ borderBottom: i < divisions.length - 1 ? '1px solid #2a2a2a' : 'none' }}
                 >
                   <div>
@@ -370,6 +519,8 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
 import logging
+import time
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +27,7 @@ app.add_middleware(
 
 bearer = HTTPBearer()
 relay_clients = {}
+relay_last_packet = {}
 
 # ── MODELS ─────────────────────────────────────────
 
@@ -256,10 +258,9 @@ def get_drivers(user=Depends(get_current_user), db: Session = Depends(get_db)):
             seen.add(driver.id)
             dp = crud.get_port_by_user(db, driver.id)
             port = dp.port if dp else None
-            online = (
-                port in relay_clients and
-                len(relay_clients[port]) > 0
-            ) if port else False
+            # Online se ha ricevuto pacchetti negli ultimi 5 secondi
+            last = relay_last_packet.get(port, 0) if port else 0
+            online = (time.time() - last) < 5 if port else False
             drivers.append({
                 "id": driver.id,
                 "username": driver.username,
@@ -409,7 +410,9 @@ def driver_status(user=Depends(get_current_user), db: Session = Depends(get_db))
         return {"online": False, "engineers_connected": 0, "port": None}
     port = dp.port
     engineers = len(relay_clients.get(port, set()))
-    online = port in relay_clients and engineers > 0
+    # Online se ha ricevuto un pacchetto negli ultimi 5 secondi
+    last = relay_last_packet.get(port, 0)
+    online = (time.time() - last) < 5
     return {
         "online": online,
         "engineers_connected": engineers,
@@ -432,7 +435,8 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
     return {"message": "Password aggiornata"}
 
 
-def create_app(clients: dict):
-    global relay_clients
+def create_app(clients: dict, last_packet: dict):
+    global relay_clients, relay_last_packet
     relay_clients = clients
+    relay_last_packet = last_packet
     return app
