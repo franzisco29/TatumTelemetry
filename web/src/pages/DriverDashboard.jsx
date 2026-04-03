@@ -1,88 +1,128 @@
+﻿import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import ProfileModal from '../components/ProfileModal'
+import TatumLogo from '../components/TatumLogo'
 
 export default function DriverDashboard() {
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const navigate         = useNavigate()
+  const [showProfile, setShowProfile]   = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef(null)
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+  const handleLogout = () => { logout(); navigate('/login') }
+
+  useEffect(() => {
+    const fn = (e) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-[#1c1c1c] text-white">
 
-      {/* Navbar */}
-      <nav className="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-            <span className="font-bold text-sm">T</span>
-          </div>
-          <span className="font-semibold">Tatum Telemetry</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm">{user?.username}</span>
+      {showProfile && (
+        <ProfileModal onClose={(changed) => { setShowProfile(false); if (changed) window.location.reload() }} />
+      )}
+
+      {/* Nav */}
+      <nav
+        className="flex items-center justify-between px-6 bg-[#181818] border-b border-[#2a2a2a]"
+        style={{ borderTop: '3px solid #f60300', minHeight: 56 }}
+      >
+        <TatumLogo width={110} />
+
+        <div className="relative" ref={userMenuRef}>
           <button
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-white text-sm transition"
+            onClick={() => setShowUserMenu(v => !v)}
+            className="flex items-center gap-2 text-[#999] hover:text-white transition-colors"
           >
-            Esci
+            <span className="w-7 h-7 rounded bg-[#f60300] flex items-center justify-center text-white text-xs font-bold select-none">
+              {user?.username?.[0]?.toUpperCase()}
+            </span>
+            <span className="text-xs">{user?.username}</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
+          {showUserMenu && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-[#222] border border-[#333] rounded-md shadow-2xl z-50 py-1">
+              <button
+                onClick={() => { setShowProfile(true); setShowUserMenu(false) }}
+                className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
+              >Edit profile</button>
+              <div className="border-t border-[#333] my-1" />
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#200000] transition-colors"
+              >Log out</button>
+            </div>
+          )}
         </div>
       </nav>
 
       {/* Content */}
-      <div className="max-w-2xl mx-auto px-6 py-12">
+      <div className="max-w-xl mx-auto px-6 py-10">
 
-        {/* Benvenuto */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold">Ciao, {user?.username}! 👋</h1>
-          <p className="text-gray-400 mt-2">Pannello Driver</p>
+        {/* Welcome */}
+        <div className="mb-8">
+          <p className="lbl mb-1">Driver Panel</p>
+          <h1 className="text-xl font-bold">Welcome, {user?.username}</h1>
         </div>
 
-        {/* Porta assegnata */}
-        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800 mb-6 text-center">
-          <p className="text-gray-400 text-sm mb-2">La tua porta telemetria</p>
-          <div className="text-6xl font-bold text-red-500 my-4">
-            {user?.port || '—'}
+        {/* Port card â€” hero element */}
+        <div
+          className="rounded-md p-7 mb-5 text-center"
+          style={{ background: '#222', border: '1px solid #333', borderTop: '3px solid #f60300' }}
+        >
+          <p className="lbl mb-4">Your telemetry port</p>
+          <div className="text-6xl font-bold font-mono text-[#f60300] tracking-wider my-4">
+            {user?.port || 'â€”'}
           </div>
-          <p className="text-gray-500 text-sm">
-            Inserisci questo numero in F1 25 → Settings → Telemetry → Port
+          <p className="text-[#555] text-xs leading-relaxed">
+            Enter this number in<br />
+            <span className="text-[#888]">F1 25 â†’ Settings â†’ Telemetry â†’ Port</span>
           </p>
-          <div className="mt-4 bg-gray-800 rounded-xl px-4 py-3 text-left">
-            <p className="text-gray-400 text-xs mb-1">IP Server</p>
-            <p className="text-white font-mono">4.232.170.59</p>
+          <div
+            className="mt-5 rounded-md px-4 py-3 text-left"
+            style={{ background: '#1c1c1c', border: '1px solid #2a2a2a' }}
+          >
+            <p className="lbl mb-1">IP Server</p>
+            <p className="font-mono text-sm text-white">4.232.170.59</p>
           </div>
         </div>
 
-        {/* Info */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-1">Team</p>
-            <p className="text-white font-semibold">{user?.team_category || '—'}</p>
+        {/* Info grid */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="bg-[#222] border border-[#333] rounded-md p-4">
+            <p className="lbl mb-1.5">Team</p>
+            <p className="font-medium text-sm">{user?.team_category || 'â€”'}</p>
           </div>
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-            <p className="text-gray-400 text-sm mb-1">Piattaforma</p>
-            <p className="text-white font-semibold">{user?.platform || '—'}</p>
+          <div className="bg-[#222] border border-[#333] rounded-md p-4">
+            <p className="lbl mb-1.5">Platform</p>
+            <p className="font-medium text-sm">{user?.platform || 'â€”'}</p>
           </div>
         </div>
 
-        {/* Divisioni */}
+        {/* Divisions */}
         {user?.divisions?.length > 0 && (
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 mt-4">
-            <p className="text-gray-400 text-sm mb-3">Le tue divisioni</p>
-            <div className="space-y-2">
-              {user.divisions.map(div => (
-                <div key={div.id} className="flex items-center justify-between bg-gray-800 rounded-xl px-4 py-3">
-                  <span className="text-white">{div.name}</span>
-                  <span className="text-gray-400 text-sm">{div.simulator}</span>
-                </div>
-              ))}
+          <div className="bg-[#222] border border-[#333] rounded-md overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#2a2a2a]">
+              <p className="lbl" style={{ marginBottom: 0 }}>Your divisions</p>
             </div>
+            {user.divisions.map((div, i) => (
+              <div
+                key={div.id}
+                className="flex items-center justify-between px-4 py-3 hover:bg-[#282828] transition-colors"
+                style={{ borderBottom: i < user.divisions.length - 1 ? '1px solid #2a2a2a' : 'none' }}
+              >
+                <span className="text-sm font-medium">{div.name}</span>
+                <span className="text-xs text-[#555]">{div.simulator}</span>
+              </div>
+            ))}
           </div>
         )}
-
       </div>
     </div>
   )

@@ -3,11 +3,25 @@ import API from '../api'
 
 const AuthContext = createContext(null)
 
+const OFFLINE_USER = {
+  username: 'offline',
+  role: 'engineer',
+  is_admin: true,
+  offline: true,
+}
+
+const OFFLINE_CREDENTIALS = { username: 'offline', password: 'offline' }
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (localStorage.getItem('offline_mode') === 'true') {
+      setUser(OFFLINE_USER)
+      setLoading(false)
+      return
+    }
     const token = localStorage.getItem('token')
     if (token) {
       API.get('/auth/me')
@@ -20,6 +34,14 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = async (username, password) => {
+    if (
+      username === OFFLINE_CREDENTIALS.username &&
+      password === OFFLINE_CREDENTIALS.password
+    ) {
+      localStorage.setItem('offline_mode', 'true')
+      setUser(OFFLINE_USER)
+      return OFFLINE_USER
+    }
     const res = await API.post('/auth/login', { username, password })
     localStorage.setItem('token', res.data.token)
     setUser(res.data)
@@ -28,6 +50,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('offline_mode')
     setUser(null)
   }
 

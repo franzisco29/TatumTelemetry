@@ -1,14 +1,15 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import TatumLogo from '../components/TatumLogo'
 
 export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
-  const navigate = useNavigate()
+  const [error, setError]       = useState('')
+  const [loading, setLoading]   = useState(false)
+  const { login }  = useAuth()
+  const navigate   = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -17,58 +18,66 @@ export default function Login() {
     try {
       const user = await login(username, password)
       if (user.role === 'driver') navigate('/driver')
-      else if (user.is_admin) navigate('/admin')
-      else navigate('/engineer')
-    } catch (err) {
-      setError('Username o password non corretti')
+      else if (user.is_admin)     navigate('/admin')
+      else                        navigate('/engineer')
+    } catch {
+      setError('Invalid credentials')
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+  const inputCls = [
+    'w-full bg-[#1c1c1c] text-white text-sm rounded-md px-3.5 py-2.5',
+    'border border-[#333] focus:outline-none focus:border-[#f60300]',
+    'transition-colors placeholder-[#444]',
+  ].join(' ')
 
-        {/* Logo / Titolo */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">T</span>
-          </div>
-          <h1 className="text-white text-3xl font-bold">Tatum Telemetry</h1>
-          <p className="text-gray-400 mt-2">Accedi al tuo account</p>
+  return (
+    <div className="min-h-screen bg-[#1c1c1c] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <TatumLogo width={190} />
         </div>
 
-        {/* Form */}
-        <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Red separator */}
+        <div className="h-[2px] bg-[#f60300] mb-8 rounded-full" />
 
+        {/* Card */}
+        <div className="bg-[#222] border border-[#333] rounded-md p-7">
+          <p className="lbl mb-6">Telemetry system access</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-400 text-sm mb-2">Username</label>
+              <label className="lbl">Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-xl px-4 py-3 border border-gray-700 focus:outline-none focus:border-red-500 transition"
-                placeholder="Inserisci username"
+                className={inputCls}
+                placeholder="Enter username"
                 required
+                autoComplete="username"
               />
             </div>
 
             <div>
-              <label className="block text-gray-400 text-sm mb-2">Password</label>
+              <label className="lbl">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-xl px-4 py-3 border border-gray-700 focus:outline-none focus:border-red-500 transition"
-                placeholder="Inserisci password"
+                className={inputCls}
+                placeholder="Enter password"
                 required
+                autoComplete="current-password"
               />
             </div>
 
             {error && (
-              <div className="bg-red-900/30 border border-red-700 text-red-400 rounded-xl px-4 py-3 text-sm">
+              <div className="rounded-md px-3.5 py-2.5 text-sm bg-[#1c0000] border border-[#f60300]/40 text-[#ff7070]">
                 {error}
               </div>
             )}
@@ -76,14 +85,16 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-semibold rounded-xl py-3 transition"
+              className="w-full bg-[#f60300] hover:bg-[#d90200] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-md py-2.5 text-sm transition-colors mt-1"
             >
-              {loading ? 'Accesso in corso...' : 'Accedi'}
+              {loading ? 'Logging in…' : 'Log in'}
             </button>
-
           </form>
         </div>
 
+        <p className="text-center text-[#3a3a3a] text-[10px] uppercase tracking-widest mt-6">
+          Tatum RES Tech — Telemetry System
+        </p>
       </div>
     </div>
   )

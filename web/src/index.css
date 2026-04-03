@@ -1,3 +1,57 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --red:     #f60300;
+  --green:   #00c000;
+  --purple:  #b61bdb;
+  --bg:      #1c1c1c;
+  --surface: #222222;
+  --elevated:#282828;
+  --border:  #333333;
+  --muted:   #555555;
+  --sub:     #999999;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ─────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 2px; }
+
+/* ── Label ──────────────────────────────────────── */
+.lbl {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* ── Select arrow ───────────────────────────────── */
+.sel {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 9px;
+}
+.sel:focus { outline: none; border-color: var(--red) !important; }
+
+/* ── Online dot pulse ───────────────────────────── */
+@keyframes onlinePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,192,0,0.5); }
+  50%       { box-shadow: 0 0 0 4px rgba(0,192,0,0); }
+}
+.dot-online { animation: onlinePulse 2.5s ease-in-out infinite; }
