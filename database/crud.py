@@ -106,6 +106,12 @@ def get_next_available_port(db: Session, base_port: int = 20001) -> int:
         port += 1
     return port
 
+def remove_port(db: Session, user_id: int):
+    dp = db.query(DriverPort).filter(DriverPort.user_id == user_id).first()
+    if dp:
+        db.delete(dp)
+        db.commit()
+
 # ── SESSIONS ───────────────────────────────────────
 
 def create_session(db: Session, driver_id: int, division_id: int, file_path: str = None):

@@ -9,6 +9,7 @@ from database.database import get_db
 from database import crud
 from sqlalchemy.orm import Session
 from database.database import get_db, SessionLocal
+from database.models import User, UserDivision
 import bcrypt
 
 logger = logging.getLogger(__name__)
@@ -135,7 +136,8 @@ def get_users(admin=Depends(require_admin), db: Session = Depends(get_db)):
             "is_active": u.is_active,
             "platform": u.platform,
             "team_category": u.team_category,
-            "port": u.driver_port.port if u.driver_port else None
+            "port": u.driver_port.port if u.driver_port else None,
+            "divisions": [{"id": d.division_id} for d in u.divisions]
         } for u in users
     ]}
 
@@ -193,6 +195,34 @@ def get_divisions(user=Depends(get_current_user), db: Session = Depends(get_db))
         }
         for d in divisions
     ]}
+
+@app.get("/admin/divisions/{division_id}/members")
+def get_division_members(
+    division_id: int,
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    division = crud.get_division_by_id(db, division_id)
+    if not division:
+        raise HTTPException(status_code=404, detail="Divisione non trovata")
+    members = db.query(User).join(UserDivision).filter(
+        UserDivision.division_id == division_id
+    ).all()
+    return {
+        "division": {"id": division.id, "name": division.name, "simulator": division.simulator},
+        "members": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "role": u.role,
+                "is_admin": u.is_admin,
+                "is_active": u.is_active,
+                "platform": u.platform,
+                "team_category": u.team_category,
+                "port": u.driver_port.port if u.driver_port else None
+            } for u in members
+        ]
+    }
 
 @app.post("/admin/divisions")
 def create_division(
@@ -363,6 +393,10 @@ def admin_update_user(
         if not existing_port:
             port = crud.get_next_available_port(db)
             crud.assign_port(db, user_id, port)
+
+    # Rimuovi porta se torna engineer
+    if req.role == "engineer":
+        crud.remove_port(db, user_id)
 
     return {"message": "Utente aggiornato"}
 

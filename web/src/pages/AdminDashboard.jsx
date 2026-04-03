@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { VERSION } from '../version'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
@@ -39,20 +38,20 @@ export default function AdminDashboard() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault()
-    try { await API.post('/admin/users', newUser); notify('User created!'); setShowCreateUser(false); setNewUser({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false }); fetchUsers() }
-    catch (err) { notify(err.response?.data?.detail || 'Error') }
+    try { await API.post('/admin/users', newUser); notify('Utente creato!'); setShowCreateUser(false); setNewUser({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false }); fetchUsers() }
+    catch (err) { notify(err.response?.data?.detail || 'Errore') }
   }
 
   const handleCreateDivision = async (e) => {
     e.preventDefault()
-    try { await API.post('/admin/divisions', newDivision); notify('Division created!'); setShowCreateDivision(false); setNewDivision({ name: '', simulator: '' }); fetchDivisions() }
-    catch (err) { notify(err.response?.data?.detail || 'Error') }
+    try { await API.post('/admin/divisions', newDivision); notify('Divisione creata!'); setShowCreateDivision(false); setNewDivision({ name: '', simulator: '' }); fetchDivisions() }
+    catch (err) { notify(err.response?.data?.detail || 'Errore') }
   }
 
   const handleAssign = async (e) => {
     e.preventDefault()
-    try { await API.post('/admin/divisions/assign', { user_id: parseInt(assign.user_id), division_id: parseInt(assign.division_id) }); notify('Assigned!'); setShowAssign(false); setAssign({ user_id: '', division_id: '' }) }
-    catch (err) { notify(err.response?.data?.detail || 'Error') }
+    try { await API.post('/admin/divisions/assign', { user_id: parseInt(assign.user_id), division_id: parseInt(assign.division_id) }); notify('Assegnato!'); setShowAssign(false); setAssign({ user_id: '', division_id: '' }) }
+    catch (err) { notify(err.response?.data?.detail || 'Errore') }
   }
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -97,12 +96,6 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-5">
-          {user?.role === 'driver' && (
-            <button
-              onClick={() => navigate('/driver')}
-              className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
-            >Driver Panel</button>
-          )}
           {user?.role === 'engineer' && (
             <button
               onClick={() => navigate('/engineer')}
@@ -127,12 +120,12 @@ export default function AdminDashboard() {
               <div className="absolute right-0 top-full mt-2 w-48 bg-[#222] border border-[#333] rounded-md shadow-2xl z-50 py-1">
                 <button onClick={() => { setShowProfile(true); setShowUserMenu(false) }}
                   className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors">
-                  Edit profile
+                  Modifica profilo
                 </button>
                 <div className="border-t border-[#333] my-1" />
                 <button onClick={handleLogout}
                   className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#200000] transition-colors">
-                  Log out
+                  Esci
                 </button>
               </div>
             )}
@@ -145,8 +138,8 @@ export default function AdminDashboard() {
 
         {/* Header */}
         <div className="mb-8">
-          <p className="lbl mb-1">Admin Panel</p>
-          <h1 className="text-xl font-bold">User & Division Management</h1>
+          <p className="lbl mb-1">Pannello Admin</p>
+          <h1 className="text-xl font-bold">Gestione Utenti & Divisioni</h1>
         </div>
 
         {/* Notification */}
@@ -159,8 +152,8 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-[#333]">
           {[
-            { id: 'users',     label: `Users (${users.length})` },
-            { id: 'divisions', label: `Divisions (${divisions.length})` },
+            { id: 'users',     label: `Utenti (${users.length})` },
+            { id: 'divisions', label: `Divisioni (${divisions.length})` },
           ].map(t => (
             <button
               key={t.id}
@@ -181,44 +174,44 @@ export default function AdminDashboard() {
             {/* Actions row */}
             <div className="flex items-center gap-2 mb-5">
               <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className={selCls} style={{ width: 150 }}>
-                <option value="all">All roles</option>
+                <option value="all">Tutti i ruoli</option>
                 <option value="driver">Driver</option>
                 <option value="engineer">Engineer</option>
               </select>
               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selCls} style={{ width: 150 }}>
-                <option value="all">All teams</option>
+                <option value="all">Tutti i team</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <select value={filterActive} onChange={e => setFilterActive(e.target.value)} className={selCls} style={{ width: 150 }}>
-                <option value="all">All statuses</option>
-                <option value="active">Active only</option>
-                <option value="inactive">Disabled only</option>
+                <option value="all">Tutti gli stati</option>
+                <option value="active">Solo attivi</option>
+                <option value="inactive">Solo disabilitati</option>
               </select>
               <div className="flex-1" />
-              <button onClick={() => setShowAssign(v => !v)} className={btnSec}>Assign division</button>
-              <button onClick={() => setShowCreateUser(v => !v)} className={btnPri}>+ New user</button>
+              <button onClick={() => setShowAssign(v => !v)} className={btnSec}>Assegna divisione</button>
+              <button onClick={() => setShowCreateUser(v => !v)} className={btnPri}>+ Nuovo utente</button>
             </div>
 
             {/* Assign form */}
             {showAssign && (
               <form onSubmit={handleAssign} className="bg-[#222] border border-[#333] rounded-md p-5 mb-4 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="lbl">User</label>
+                  <label className="lbl">Utente</label>
                   <select value={assign.user_id} onChange={e => setAssign({...assign, user_id: e.target.value})} className={selCls} required>
-                    <option value="">Select user</option>
+                    <option value="">Seleziona utente</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="lbl">Division</label>
+                  <label className="lbl">Divisione</label>
                   <select value={assign.division_id} onChange={e => setAssign({...assign, division_id: e.target.value})} className={selCls} required>
-                    <option value="">Select division</option>
+                    <option value="">Seleziona divisione</option>
                     {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2 flex gap-2">
-                  <button type="submit" className={btnPri}>Assign</button>
-                  <button type="button" onClick={() => setShowAssign(false)} className={btnSec}>Cancel</button>
+                  <button type="submit" className={btnPri}>Assegna</button>
+                  <button type="button" onClick={() => setShowAssign(false)} className={btnSec}>Annulla</button>
                 </div>
               </form>
             )}
@@ -235,14 +228,14 @@ export default function AdminDashboard() {
                   <input type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className={inputCls} required placeholder="Password" />
                 </div>
                 <div>
-                  <label className="lbl">Role</label>
+                  <label className="lbl">Ruolo</label>
                   <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className={selCls}>
                     <option value="driver">Driver</option>
                     <option value="engineer">Engineer</option>
                   </select>
                 </div>
                 <div>
-                  <label className="lbl">Platform</label>
+                  <label className="lbl">Piattaforma</label>
                   <select value={newUser.platform} onChange={e => setNewUser({...newUser, platform: e.target.value})} className={selCls}>
                     <option value="PC">PC</option>
                     <option value="PS5">PS5</option>
@@ -267,8 +260,8 @@ export default function AdminDashboard() {
                   <label htmlFor="is_admin" className="lbl cursor-pointer" style={{ marginBottom: 0 }}>Admin</label>
                 </div>
                 <div className="col-span-2 flex gap-2">
-                  <button type="submit" className={btnPri}>Create user</button>
-                  <button type="button" onClick={() => setShowCreateUser(false)} className={btnSec}>Cancel</button>
+                  <button type="submit" className={btnPri}>Crea utente</button>
+                  <button type="button" onClick={() => setShowCreateUser(false)} className={btnSec}>Annulla</button>
                 </div>
               </form>
             )}
@@ -278,7 +271,7 @@ export default function AdminDashboard() {
               <table className="w-full">
                 <thead>
                   <tr style={{ background: '#1c1c1c', borderBottom: '1px solid #333' }}>
-                    {['Username', 'Role', 'Team', 'Port', 'Status', ''].map(h => (
+                    {['Username', 'Ruolo', 'Team', 'Porta', 'Stato', ''].map(h => (
                       <th key={h} className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#555]">{h}</th>
                     ))}
                   </tr>
@@ -311,18 +304,14 @@ export default function AdminDashboard() {
                             ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
                             : { background: '#202020', color: '#555',    border: '1px solid #333' }}
                         >
-                          {u.is_active ? 'Active' : 'Disabled'}
+                          {u.is_active ? 'Attivo' : 'Disabilitato'}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        {u.is_superuser && user.id !== u.id ? (
-                          <span className="text-[11px] text-[#333] uppercase tracking-wider">Protected</span>
-                        ) : (
-                          <button
-                            onClick={() => setEditUser(u)}
-                            className="text-[11px] text-[#666] hover:text-white transition-colors uppercase tracking-wider"
-                          >Edit</button>
-                        )}
+                        <button
+                          onClick={() => setEditUser(u)}
+                          className="text-[11px] text-[#666] hover:text-white transition-colors uppercase tracking-wider"
+                        >Modifica</button>
                       </td>
                     </tr>
                   ))}
@@ -336,25 +325,25 @@ export default function AdminDashboard() {
         {tab === 'divisions' && (
           <div>
             <div className="flex justify-between items-center mb-5">
-              <p className="lbl">Registered divisions</p>
+              <p className="lbl">Divisioni registrate</p>
               <button onClick={() => setShowCreateDivision(v => !v)} className={btnPri}>
-                + New division
+                + Nuova divisione
               </button>
             </div>
 
             {showCreateDivision && (
               <form onSubmit={handleCreateDivision} className="bg-[#222] border border-[#333] rounded-md p-5 mb-5 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="lbl">Division name</label>
+                  <label className="lbl">Nome divisione</label>
                   <input value={newDivision.name} onChange={e => setNewDivision({...newDivision, name: e.target.value})} className={inputCls} required placeholder="es. F1 25 Main" />
                 </div>
                 <div>
-                  <label className="lbl">Simulator</label>
+                  <label className="lbl">Simulatore</label>
                   <input value={newDivision.simulator} onChange={e => setNewDivision({...newDivision, simulator: e.target.value})} className={inputCls} required placeholder="es. F1 25, ACC, iRacing" />
                 </div>
                 <div className="col-span-2 flex gap-2">
-                  <button type="submit" className={btnPri}>Create division</button>
-                  <button type="button" onClick={() => setShowCreateDivision(false)} className={btnSec}>Cancel</button>
+                  <button type="submit" className={btnPri}>Crea divisione</button>
+                  <button type="button" onClick={() => setShowCreateDivision(false)} className={btnSec}>Annulla</button>
                 </div>
               </form>
             )}
@@ -383,10 +372,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-
-        <p className="text-center text-[#2e2e2e] text-[10px] uppercase tracking-widest mt-10">
-          Tatum RES Tech — Telemetry System v{VERSION}
-        </p>
       </div>
     </div>
   )

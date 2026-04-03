@@ -31,7 +31,7 @@ export default function EditUserModal({ user, onClose }) {
       if (form.password) payload.password = form.password
       await API.patch(`/admin/users/${user.id}/full`, payload)
       setMessage('User updated!')
-      setTimeout(() => onClose(true), 1500)
+      setTimeout(() => onClose(true), 500)
     } catch (err) {
       setError(err.response?.data?.detail || 'Error')
     } finally {

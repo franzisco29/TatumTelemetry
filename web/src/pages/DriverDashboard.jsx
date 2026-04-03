@@ -52,7 +52,15 @@ export default function DriverDashboard() {
       >
         <TatumLogo width={110} />
 
-        <div className="relative" ref={userMenuRef}>
+        <div className="flex items-center gap-5">
+          {user?.is_admin && (
+            <button
+              onClick={() => navigate('/admin')}
+              className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
+            >Admin</button>
+          )}
+
+          <div className="relative" ref={userMenuRef}>
           <button
             onClick={() => setShowUserMenu(v => !v)}
             className="flex items-center gap-2 text-[#999] hover:text-white transition-colors"
@@ -79,6 +87,7 @@ export default function DriverDashboard() {
             </div>
           )}
         </div>
+        </div>
       </nav>
 
       {/* Content */}
@@ -97,11 +106,11 @@ export default function DriverDashboard() {
         >
           <p className="lbl mb-4">Your telemetry port</p>
           <div className="text-6xl font-bold font-mono text-[#f60300] tracking-wider my-4">
-            {user?.port || 'â€”'}
+            {user?.port || '—'}
           </div>
           <p className="text-[#555] text-xs leading-relaxed">
             Enter this number in<br />
-            <span className="text-[#888]">F1 25 â†’ Settings â†’ Telemetry â†’ Port</span>
+            <span className="text-[#888]">F1 25 → Settings → Telemetry → Port</span>
           </p>
           <div
             className="mt-5 rounded-md px-4 py-3 text-left"

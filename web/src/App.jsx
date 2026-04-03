@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import DriverDashboard from './pages/DriverDashboard'
 import EngineerDashboard from './pages/EngineerDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import DivisionDetail from './pages/DivisionDetail'
 
 function RootRedirect() {
   const { user } = useAuth()
@@ -29,6 +30,9 @@ export default function App() {
           } />
           <Route path="/admin" element={
             <ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>
+          } />
+          <Route path="/admin/divisions/:id" element={
+            <ProtectedRoute requireAdmin><DivisionDetail /></ProtectedRoute>
           } />
         </Routes>
       </BrowserRouter>
