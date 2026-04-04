@@ -195,12 +195,12 @@ export default function EngineerDashboard() {
               Client active
             </div>
           ) : (
-            <a
-              href="/downloads/TatumClient-setup.exe"
+            <button
+              onClick={() => navigate('/download')}
               className="text-[11px] uppercase tracking-wider text-[#f60300] border border-[#f60300]/30 rounded px-2.5 py-1 hover:bg-[#f60300]/10 transition-colors"
             >
               Download Client
-            </a>
+            </button>
           )}
           {user?.is_admin && (
             <button onClick={() => navigate('/admin')}
@@ -227,6 +227,12 @@ export default function EngineerDashboard() {
                   className="w-full text-left px-4 py-2.5 text-xs text-[#888] hover:text-white hover:bg-[#282828] transition-colors">
                   Edit profile
                 </button>
+                <button
+                  onClick={() => { navigate('/download'); setShowUserMenu(false) }}
+                  className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
+                >
+                  Download Client
+                </button>
                 <div className="border-t border-[#2e2e2e] my-1" />
                 <button onClick={handleLogout}
                   className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#1f0000] transition-colors">
@@ -246,6 +252,20 @@ export default function EngineerDashboard() {
             <h1 className="text-xl font-bold">Real-time drivers</h1>
           </div>
           <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md"
+              style={{
+                background: clientRunning ? '#0d1f0d' : '#1e1e1e',
+                border: '1px solid ' + (clientRunning ? 'rgba(0,192,0,0.25)' : '#2a2a2a')
+              }}>
+              <div
+                className={'w-2 h-2 rounded-full shrink-0' + (clientRunning ? ' dot-online' : '')}
+                style={{ background: clientRunning ? '#00c000' : '#444' }}
+              />
+              <span className="text-[11px] uppercase tracking-wider" style={{ color: clientRunning ? '#00c000' : '#555' }}>
+                {clientRunning ? 'Client active' : 'Client offline'}
+              </span>
+            </div>
+            <div className="w-px h-8 bg-[#2e2e2e]" />
             <div className="text-right">
               <p className="text-xl font-bold font-mono text-[#00c000]">{onlineCount}</p>
               <p className="lbl">Online</p>

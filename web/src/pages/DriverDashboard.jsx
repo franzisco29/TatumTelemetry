@@ -79,6 +79,12 @@ export default function DriverDashboard() {
                 onClick={() => { setShowProfile(true); setShowUserMenu(false) }}
                 className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
               >Edit profile</button>
+              <button
+                onClick={() => { navigate('/download'); setShowUserMenu(false) }}
+                className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
+              >
+                Download Client
+              </button>
               <div className="border-t border-[#333] my-1" />
               <button
                 onClick={handleLogout}
