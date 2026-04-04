@@ -102,6 +102,11 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         "port": port
     }
 
+@app.get("/auth/client-token")
+def client_token(user=Depends(get_current_user)):
+    token = create_token(user.username, user.role)
+    return {"token": token}
+
 @app.get("/auth/me")
 def me(user=Depends(get_current_user), db: Session = Depends(get_db)):
     port = None

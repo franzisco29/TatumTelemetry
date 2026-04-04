@@ -81,10 +81,25 @@ export default function EngineerDashboard() {
   const [filterDivision, setFilterDivision] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterOnline, setFilterOnline]     = useState(false)
+  const [clientRunning, setClientRunning]   = useState(false)
 
   useEffect(() => {
     fetchDrivers()
     const iv = setInterval(fetchDrivers, 5000)
+    return () => clearInterval(iv)
+  }, [])
+
+  useEffect(() => {
+    const checkClient = async () => {
+      try {
+        await fetch('http://localhost:7842/status')
+        setClientRunning(true)
+      } catch {
+        setClientRunning(false)
+      }
+    }
+    checkClient()
+    const iv = setInterval(checkClient, 3000)
     return () => clearInterval(iv)
   }, [])
 
@@ -99,14 +114,41 @@ export default function EngineerDashboard() {
     }
   }
 
-  const connect = (driver) => {
+  const connect = async (driver) => {
     if (ws) ws.close()
+
+    // Prova a comandare il client locale
+    try {
+      const tokenRes = await API.get('/auth/client-token')
+      await fetch('http://localhost:7842/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          port: driver.port,
+          token: tokenRes.data.token,
+          driver: driver.username
+        })
+      })
+      setConnected(driver)
+      return
+    } catch {
+      // Client non disponibile — usa WebSocket browser
+    }
+
+    // Fallback WebSocket browser
     const socket = new WebSocket(`${WS_URL}/ws/${driver.port}`)
     socket.onopen  = () => { setConnected(driver); setWs(socket) }
     socket.onclose = () => { setConnected(null);   setWs(null) }
   }
 
-  const disconnect   = () => { if (ws) ws.close(); setConnected(null); setWs(null) }
+  const disconnect = async () => {
+    try {
+      await fetch('http://localhost:7842/disconnect', { method: 'POST' })
+    } catch {}
+    if (ws) ws.close()
+    setConnected(null)
+    setWs(null)
+  }
   const handleLogout = () => { disconnect(); logout(); navigate('/login') }
 
   useEffect(() => {
@@ -147,6 +189,19 @@ export default function EngineerDashboard() {
           )}
         </div>
         <div className="flex items-center gap-5">
+          {clientRunning ? (
+            <div className="flex items-center gap-1.5 text-[11px] text-[#00c000]">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00c000]" />
+              Client active
+            </div>
+          ) : (
+            <a
+              href="/downloads/TatumClient-setup.exe"
+              className="text-[11px] uppercase tracking-wider text-[#f60300] border border-[#f60300]/30 rounded px-2.5 py-1 hover:bg-[#f60300]/10 transition-colors"
+            >
+              Download Client
+            </a>
+          )}
           {user?.is_admin && (
             <button onClick={() => navigate('/admin')}
               className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors">
