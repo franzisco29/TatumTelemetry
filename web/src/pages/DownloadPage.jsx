@@ -112,6 +112,18 @@ export default function DownloadPage() {
           </p>
         </div>
 
+        {/* SmartScreen notice */}
+        <div className="mb-6 rounded-md px-4 py-3 flex items-start gap-3"
+          style={{ background: '#1a1400', border: '1px solid rgba(245,166,35,0.3)' }}>
+          <span className="text-[#f5a623] text-base mt-0.5 shrink-0">⚠</span>
+          <div>
+            <p className="text-xs font-semibold text-[#f5a623] mb-0.5">Windows SmartScreen</p>
+            <p className="text-[11px] text-[#888] leading-relaxed">
+              Windows potrebbe mostrare un avviso "PC protetto". Clicca <strong className="text-[#aaa]">Altre informazioni</strong> → <strong className="text-[#aaa]">Esegui comunque</strong> per procedere. L'app è sicura.
+            </p>
+          </div>
+        </div>
+
         {/* Client status */}
         <div
           className="rounded-md px-5 py-4 mb-8 flex items-center gap-3"

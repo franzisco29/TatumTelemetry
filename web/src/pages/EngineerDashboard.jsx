@@ -171,7 +171,7 @@ export default function EngineerDashboard() {
   // Chiudi connessione quando si naviga via (es. tasto Back del browser)
   useEffect(() => {
     return () => {
-      try { fetch('http://localhost:7842/disconnect', { method: 'POST' }) } catch {}
+      fetch('http://localhost:7842/disconnect', { method: 'POST' }).catch(() => {})
     }
   }, [])
 
@@ -244,8 +244,20 @@ export default function EngineerDashboard() {
               <button
                 onClick={() => {
                   window.location.href = 'tatum://launch'
-                  setTimeout(checkClient, 3000)
-                  setTimeout(checkClient, 6000)
+                  // Controlla se il client parte; se no dopo 8s suggerisce il download
+                  let found = false
+                  const checks = [3000, 6000, 8000]
+                  checks.forEach(delay => setTimeout(async () => {
+                    if (found) return
+                    try {
+                      await fetch('http://localhost:7842/status')
+                      setClientRunning(true)
+                      found = true
+                    } catch {
+                      if (delay === 8000 && !found)
+                        showMsg('Client non trovato — scaricalo e installalo prima', false)
+                    }
+                  }, delay))
                 }}
                 className="text-[11px] uppercase tracking-wider text-[#f5a623] border border-[#f5a623]/30 rounded px-2.5 py-1 hover:bg-[#f5a623]/10 transition-colors"
                 title="Avvia il client se è già installato"
