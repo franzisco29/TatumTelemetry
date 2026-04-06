@@ -94,15 +94,16 @@ export default function EngineerDashboard() {
     return () => clearInterval(iv)
   }, [])
 
-  useEffect(() => {
-    const checkClient = async () => {
-      try {
-        await fetch('http://localhost:7842/status')
-        setClientRunning(true)
-      } catch {
-        setClientRunning(false)
-      }
+  const checkClient = async () => {
+    try {
+      await fetch('http://localhost:7842/status')
+      setClientRunning(true)
+    } catch {
+      setClientRunning(false)
     }
+  }
+
+  useEffect(() => {
     checkClient()
     const iv = setInterval(checkClient, 30000)
     return () => clearInterval(iv)
@@ -241,7 +242,11 @@ export default function EngineerDashboard() {
           ) : (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { window.location.href = 'tatum://launch' }}
+                onClick={() => {
+                  window.location.href = 'tatum://launch'
+                  setTimeout(checkClient, 3000)
+                  setTimeout(checkClient, 6000)
+                }}
                 className="text-[11px] uppercase tracking-wider text-[#f5a623] border border-[#f5a623]/30 rounded px-2.5 py-1 hover:bg-[#f5a623]/10 transition-colors"
                 title="Avvia il client se è già installato"
               >
