@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import TatumLogo from '../components/TatumLogo'
+import Navbar from '../components/Navbar'
 
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
 const GITHUB_REPO  = import.meta.env.VITE_GITHUB_REPO
 
 export default function DownloadPage() {
-  const { user, logout } = useAuth()
+  const { user, connectedDriver } = useAuth()
   const navigate = useNavigate()
   const [release, setRelease] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -57,8 +57,6 @@ export default function DownloadPage() {
     document.body.removeChild(a)
   }
 
-  const handleLogout = () => { logout(); navigate('/login') }
-
   const getIcon = (name) => {
     if (name.includes('Setup') || name.includes('setup') || name.includes('installer')) return '📦'
     if (name.includes('.exe'))    return '🪟'
@@ -69,8 +67,8 @@ export default function DownloadPage() {
 
   const getLabel = (name) => {
     if (name.includes('Setup') || name.includes('setup') || name.includes('installer'))
-      return 'Windows Installer (consigliato)'
-    if (name.includes('.exe'))    return 'Windows (eseguibile standalone)'
+      return 'Windows Installer (recommended)'
+    if (name.includes('.exe'))    return 'Windows (standalone executable)'
     if (name.includes('mac') || name.includes('darwin')) return 'macOS'
     if (name.includes('linux'))   return 'Linux'
     return name
@@ -81,26 +79,30 @@ export default function DownloadPage() {
 
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
-      <nav
-        className="flex items-center justify-between px-6 bg-[#181818] border-b border-[#2a2a2a]"
-        style={{ borderTop: '3px solid #f60300', minHeight: 56 }}
-      >
-        <div className="flex items-center gap-3">
-          <TatumLogo width={110} />
-        </div>
-        <div className="flex items-center gap-5">
-          <button
-            onClick={() => navigate(user?.role === 'driver' ? '/driver' : user?.is_admin ? '/admin' : '/engineer')}
-            className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
+
+      <Navbar
+        badge={
+          <div
+            className="flex items-center gap-2 text-[11px] uppercase tracking-wider rounded px-2.5 py-1"
+            style={connectedDriver
+              ? { color: '#f60300', border: '1px solid rgba(246,3,0,0.25)', background: '#1f0000' }
+              : { color: '#444',    border: '1px solid #2a2a2a',            background: '#1c1c1c' }}
           >
-            ← Back
-          </button>
-          <span className="text-xs text-[#666]">{user?.username}</span>
-          <button onClick={handleLogout} className="text-[11px] uppercase tracking-wider text-[#f60300] hover:text-white transition-colors">
-            Log out
-          </button>
-        </div>
-      </nav>
+            <span
+              className={'w-1.5 h-1.5 rounded-full' + (connectedDriver ? ' dot-online' : '')}
+              style={{ background: connectedDriver ? '#f60300' : '#333' }}
+            />
+            {connectedDriver ? `Live — ${connectedDriver.username}` : 'Live'}
+          </div>
+        }
+        extra={
+          <button
+            onClick={() => navigate(-1)}
+            className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
+          >← Back</button>
+        }
+        showDownload={false}
+      />
 
       <div className="max-w-2xl mx-auto px-6 py-12">
 
@@ -119,7 +121,7 @@ export default function DownloadPage() {
           <div>
             <p className="text-xs font-semibold text-[#f5a623] mb-0.5">Windows SmartScreen</p>
             <p className="text-[11px] text-[#888] leading-relaxed">
-              Windows potrebbe mostrare un avviso "PC protetto". Clicca <strong className="text-[#aaa]">Altre informazioni</strong> → <strong className="text-[#aaa]">Esegui comunque</strong> per procedere. L'app è sicura.
+            Windows may show a "Windows protected your PC" warning. Click <strong className="text-[#aaa]">More info</strong> → <strong className="text-[#aaa]">Run anyway</strong> to proceed. The app is safe.
             </p>
           </div>
         </div>
@@ -161,7 +163,7 @@ export default function DownloadPage() {
               <div>
                 <p className="font-semibold text-sm">{release.name}</p>
                 <p className="text-[#555] text-xs mt-0.5">
-                  {new Date(release.published_at).toLocaleDateString('it-IT')}
+                  {new Date(release.published_at).toLocaleDateString('en-GB')}
                 </p>
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded"
@@ -183,7 +185,7 @@ export default function DownloadPage() {
                         {isInstaller(asset.name) && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
                             style={{ background: '#1f1600', color: '#f5a623', border: '1px solid rgba(245,166,35,0.35)' }}>
-                            Consigliato
+                            Recommended
                           </span>
                         )}
                       </div>
@@ -213,14 +215,14 @@ export default function DownloadPage() {
 
           {/* Istruzioni installazione */}
           <div className="mt-6 bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-5 py-4">
-            <p className="lbl mb-3">Come installare</p>
+            <p className="lbl mb-3">How to install</p>
             <ol className="space-y-2.5">
               {[
-                'Scarica TatumClientSetup.exe (consigliato)',
-                'Avvia il file e segui il wizard di installazione',
-                "Spunta \"Avvia automaticamente con Windows\" per non doverlo rilanciare ad ogni avvio",
-                'Al termine verrà avviato automaticamente — cerca l\'icona nella barra di sistema (system tray)',
-                'Torna qui: la dashboard lo rileverà e potrai connetterti ai driver',
+                'Download TatumClientSetup.exe (recommended)',
+                'Run the file and follow the installation wizard',
+                'Check "Launch automatically with Windows" to avoid restarting it manually',
+                'When done it will launch automatically — look for the icon in the system tray',
+                'Come back here: the dashboard will detect it and you can connect to drivers',
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"

@@ -15,6 +15,7 @@ const OFFLINE_CREDENTIALS = { username: 'offline', password: 'offline' }
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [connectedDriver, setConnectedDriver] = useState(null)
 
   useEffect(() => {
     if (localStorage.getItem('offline_mode') === 'true') {
@@ -55,7 +56,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, connectedDriver, setConnectedDriver }}>
       {children}
     </AuthContext.Provider>
   )

@@ -39,7 +39,7 @@ class F1UDPProtocol(asyncio.DatagramProtocol):
         self.last_packet[self.port] = time.time()
 
         clients = self.clients.get(self.port, set())
-        logger.info(f"Pacchetto da {addr} porta {self.port} - {len(data)} bytes - ingegneri: {len(clients)}")
+        # logger.info(f"Pacchetto da {addr} porta {self.port} - {len(data)} bytes - ingegneri: {len(clients)}")
         dead = set()
         for ws in clients:
             try:

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
@@ -284,6 +285,8 @@ def get_drivers(user=Depends(get_current_user), db: Session = Depends(get_db)):
 
 # ── WEBSOCKET ──────────────────────────────────────
 
+DRIVER_TIMEOUT_SECONDS = 10
+
 @app.websocket("/ws/{pilot_port}")
 async def websocket_endpoint(websocket: WebSocket, pilot_port: int):
     if pilot_port not in relay_clients:
@@ -298,12 +301,38 @@ async def websocket_endpoint(websocket: WebSocket, pilot_port: int):
     conn_log = crud.log_connection(db, user_id=None, driver_port=pilot_port)
     db.close()
 
-    try:
+    async def receive_loop():
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            pass
+
+    async def driver_watchdog():
+        # Aspetta che il driver inizi a trasmettere
+        while relay_last_packet.get(pilot_port, 0) == 0:
+            await asyncio.sleep(1)
+        # Monitora il timeout del driver
         while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
+            await asyncio.sleep(5)
+            last = relay_last_packet.get(pilot_port, 0)
+            if (time.time() - last) > DRIVER_TIMEOUT_SECONDS:
+                logger.info(f"Driver porta {pilot_port} offline, disconnetto ingegnere")
+                try:
+                    await websocket.close(code=1001)
+                except Exception:
+                    pass
+                return
+
+    receiver = asyncio.ensure_future(receive_loop())
+    watchdog = asyncio.ensure_future(driver_watchdog())
+
+    try:
+        await asyncio.wait([receiver, watchdog], return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for task in (receiver, watchdog):
+            task.cancel()
         relay_clients[pilot_port].discard(websocket)
-        # Chiudi log
         db = SessionLocal()
         crud.close_connection(db, conn_log.id)
         db.close()

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import API from '../api'
+import PasswordInput from './PasswordInput'
 
-export default function EditUserModal({ user, onClose }) {
+export default function EditUserModal({ user, divisions = [], onClose }) {
   const [form, setForm] = useState({
     username: user.username || '',
     password: '',
@@ -9,7 +10,8 @@ export default function EditUserModal({ user, onClose }) {
     is_admin: user.is_admin || false,
     is_active: user.is_active ?? true,
     platform: user.platform || 'PC',
-    team_category: user.team_category || 'Main'
+    team_category: user.team_category || 'Main',
+    division_id: ''
   })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -30,6 +32,9 @@ export default function EditUserModal({ user, onClose }) {
       }
       if (form.password) payload.password = form.password
       await API.patch(`/admin/users/${user.id}/full`, payload)
+      if (form.division_id) {
+        await API.post('/admin/divisions/assign', { user_id: user.id, division_id: parseInt(form.division_id) })
+      }
       setMessage('User updated!')
       setTimeout(() => onClose(true), 500)
     } catch (err) {
@@ -60,7 +65,7 @@ export default function EditUserModal({ user, onClose }) {
           </div>
           <div>
             <label className="lbl">New password</label>
-            <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className={inputCls} placeholder="Leave blank to keep unchanged" />
+            <PasswordInput value={form.password} onChange={e => setForm({...form, password: e.target.value})} className={inputCls} placeholder="Leave blank to keep unchanged" />
           </div>
           <div>
             <label className="lbl">Role</label>
@@ -95,6 +100,16 @@ export default function EditUserModal({ user, onClose }) {
               <span className="text-[#999] text-xs uppercase tracking-wider">Active</span>
             </label>
           </div>
+
+          {divisions.length > 0 && (
+            <div className="col-span-2">
+              <label className="lbl">Assign division <span className="text-[#555] normal-case tracking-normal" style={{fontSize:'10px'}}>(optional)</span></label>
+              <select value={form.division_id} onChange={e => setForm({...form, division_id: e.target.value})} className={selCls}>
+                <option value="">No change</option>
+                {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+          )}
 
           {error   && <div className="col-span-2 rounded-md px-3.5 py-2.5 text-sm bg-[#1c0000] border border-[#f60300]/40 text-[#ff7070]">{error}</div>}
           {message && <div className="col-span-2 rounded-md px-3.5 py-2.5 text-sm bg-[#001800] border border-[#00c000]/30 text-[#00c000]">{message}</div>}

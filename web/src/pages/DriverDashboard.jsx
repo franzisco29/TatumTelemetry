@@ -1,17 +1,13 @@
-﻿import { useState, useEffect, useRef } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import API from '../api'
 import { VERSION } from '../version'
-import ProfileModal from '../components/ProfileModal'
-import TatumLogo from '../components/TatumLogo'
+import Navbar from '../components/Navbar'
 
 export default function DriverDashboard() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate         = useNavigate()
-  const [showProfile, setShowProfile]   = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const userMenuRef = useRef(null)
 
   const [status, setStatus] = useState({ online: false, engineers_connected: 0 })
 
@@ -30,71 +26,19 @@ export default function DriverDashboard() {
     }
   }
 
-  const handleLogout = () => { logout(); navigate('/login') }
-
-  useEffect(() => {
-    const fn = (e) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false) }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
-  }, [])
-
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
-      {showProfile && (
-        <ProfileModal onClose={(changed) => { setShowProfile(false); if (changed) window.location.reload() }} />
-      )}
-
-      {/* Nav */}
-      <nav
-        className="flex items-center justify-between px-6 bg-[#181818] border-b border-[#2a2a2a]"
-        style={{ borderTop: '3px solid #f60300', minHeight: 56 }}
-      >
-        <TatumLogo width={110} />
-
-        <div className="flex items-center gap-5">
-          {user?.is_admin && (
+      <Navbar
+        extra={
+          user?.is_admin && (
             <button
               onClick={() => navigate('/admin')}
               className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
             >Admin</button>
-          )}
-
-          <div className="relative" ref={userMenuRef}>
-          <button
-            onClick={() => setShowUserMenu(v => !v)}
-            className="flex items-center gap-2 text-[#999] hover:text-white transition-colors"
-          >
-            <span className="w-7 h-7 rounded bg-[#f60300] flex items-center justify-center text-white text-xs font-bold select-none">
-              {user?.username?.[0]?.toUpperCase()}
-            </span>
-            <span className="text-xs">{user?.username}</span>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {showUserMenu && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#222] border border-[#333] rounded-md shadow-2xl z-50 py-1">
-              <button
-                onClick={() => { setShowProfile(true); setShowUserMenu(false) }}
-                className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
-              >Edit profile</button>
-              <button
-                onClick={() => { navigate('/download'); setShowUserMenu(false) }}
-                className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
-              >
-                Download Client
-              </button>
-              <div className="border-t border-[#333] my-1" />
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#200000] transition-colors"
-              >Log out</button>
-            </div>
-          )}
-        </div>
-        </div>
-      </nav>
+          )
+        }
+      />
 
       {/* Content */}
       <div className="max-w-xl mx-auto px-6 py-10">

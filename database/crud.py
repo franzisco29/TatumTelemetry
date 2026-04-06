@@ -48,6 +48,10 @@ def update_user(db: Session, user_id: int, **kwargs):
 def delete_user(db: Session, user_id: int):
     user = get_user_by_id(db, user_id)
     if user:
+        db.query(UserDivision).filter(UserDivision.user_id == user_id).delete()
+        db.query(DriverPort).filter(DriverPort.user_id == user_id).delete()
+        db.query(SessionModel).filter(SessionModel.driver_id == user_id).delete()
+        db.query(Connection).filter(Connection.user_id == user_id).delete()
         db.delete(user)
         db.commit()
 

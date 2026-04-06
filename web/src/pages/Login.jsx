@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
 import TatumLogo from '../components/TatumLogo'
+import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -96,8 +97,7 @@ export default function Login() {
 
             <div>
               <label className="lbl">Password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className={inputCls}
@@ -145,11 +145,11 @@ export default function Login() {
                 </div>
                 <div>
                   <label className="lbl">Current password</label>
-                  <input type="password" value={resetForm.old_password} onChange={e => setResetForm({...resetForm, old_password: e.target.value})} className={inputCls} required placeholder="Current password" />
+                  <PasswordInput value={resetForm.old_password} onChange={e => setResetForm({...resetForm, old_password: e.target.value})} className={inputCls} required placeholder="Current password" />
                 </div>
                 <div>
                   <label className="lbl">New password</label>
-                  <input type="password" value={resetForm.new_password} onChange={e => setResetForm({...resetForm, new_password: e.target.value})} className={inputCls} required placeholder="New password" />
+                  <PasswordInput value={resetForm.new_password} onChange={e => setResetForm({...resetForm, new_password: e.target.value})} className={inputCls} required placeholder="New password" />
                 </div>
                 {resetErr && <div className="rounded-md px-3.5 py-2.5 text-sm bg-[#1c0000] border border-[#f60300]/40 text-[#ff7070]">{resetErr}</div>}
                 {resetMsg && <div className="rounded-md px-3.5 py-2.5 text-sm bg-[#001800] border border-[#00c000]/30 text-[#00c000]">{resetMsg}</div>}

@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
-import ProfileModal from '../components/ProfileModal'
 import EditUserModal from '../components/EditUserModal'
-import TatumLogo from '../components/TatumLogo'
+import PasswordInput from '../components/PasswordInput'
+import Navbar from '../components/Navbar'
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab]                   = useState('users')
   const [users, setUsers]               = useState([])
@@ -15,11 +15,9 @@ export default function AdminDashboard() {
   const [showCreateUser, setShowCreateUser]         = useState(false)
   const [showCreateDivision, setShowCreateDivision] = useState(false)
   const [showAssign, setShowAssign]     = useState(false)
-  const [showProfile, setShowProfile]   = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const userMenuRef = useRef(null)
   const [editUser, setEditUser]         = useState(null)
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false })
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false, division_id: '' })
   const [newDivision, setNewDivision]   = useState({ name: '', simulator: '' })
   const [assign, setAssign]             = useState({ user_id: '', division_id: '' })
   const [message, setMessage]           = useState('')
@@ -41,23 +39,34 @@ export default function AdminDashboard() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault()
-    try { await API.post('/admin/users', newUser); notify('Utente creato!'); setShowCreateUser(false); setNewUser({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false }); fetchUsers() }
-    catch (err) { notify(err.response?.data?.detail || 'Errore') }
+    try {
+      const r = await API.post('/admin/users', newUser)
+      if (newUser.division_id) {
+        await API.post('/admin/divisions/assign', { user_id: r.data.id, division_id: parseInt(newUser.division_id) })
+      }
+      notify('User created!')
+      setShowCreateUser(false)
+      setNewUser({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false, division_id: '' })
+      fetchUsers()
+    } catch (err) { notify(err.response?.data?.detail || 'Error') }
   }
 
   const handleCreateDivision = async (e) => {
     e.preventDefault()
-    try { await API.post('/admin/divisions', newDivision); notify('Divisione creata!'); setShowCreateDivision(false); setNewDivision({ name: '', simulator: '' }); fetchDivisions() }
-    catch (err) { notify(err.response?.data?.detail || 'Errore') }
+    try { await API.post('/admin/divisions', newDivision); notify('Division created!'); setShowCreateDivision(false); setNewDivision({ name: '', simulator: '' }); fetchDivisions() }
+    catch (err) { notify(err.response?.data?.detail || 'Error') }
+  }
+
+  const handleDeleteUser = async (u) => {
+    try { await API.delete(`/admin/users/${u.id}`); notify(`User "${u.username}" deleted.`); setConfirmDelete(null); fetchUsers() }
+    catch (err) { notify(err.response?.data?.detail || 'Error') }
   }
 
   const handleAssign = async (e) => {
     e.preventDefault()
-    try { await API.post('/admin/divisions/assign', { user_id: parseInt(assign.user_id), division_id: parseInt(assign.division_id) }); notify('Assegnato!'); setShowAssign(false); setAssign({ user_id: '', division_id: '' }) }
-    catch (err) { notify(err.response?.data?.detail || 'Errore') }
+    try { await API.post('/admin/divisions/assign', { user_id: parseInt(assign.user_id), division_id: parseInt(assign.division_id) }); notify('Assigned!'); setShowAssign(false); setAssign({ user_id: '', division_id: '' }) }
+    catch (err) { notify(err.response?.data?.detail || 'Error') }
   }
-
-  const handleLogout = () => { logout(); navigate('/login') }
 
   const openDivision = async (d) => {
     setSelectedDivision(d)
@@ -70,12 +79,6 @@ export default function AdminDashboard() {
     finally { setDivisionLoading(false) }
   }
 
-  useEffect(() => {
-    const fn = (e) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setShowUserMenu(false) }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
-  }, [])
-
   const categories    = [...new Set(users.map(u => u.team_category))].filter(Boolean)
   const filteredUsers = users.filter(u => {
     if (filterRole     !== 'all'      && u.role        !== filterRole)      return false
@@ -86,7 +89,7 @@ export default function AdminDashboard() {
   })
 
   // ── Shared style tokens ──────────────────────────────
-  const inputCls  = 'w-full bg-[#1c1c1c] text-white text-sm rounded-md px-3.5 py-2.5 border border-[#333] focus:outline-none focus:border-[#f60300] transition-colors placeholder-[#444] sel'
+  const inputCls  = 'w-full bg-[#1c1c1c] text-white text-sm rounded-md px-3.5 py-2.5 border border-[#333] focus:outline-none focus:border-[#f60300] transition-colors placeholder-[#444]'
   const selCls    = `${inputCls} sel`
   const btnPri    = 'px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors'
   const btnSec    = 'px-4 py-2 rounded-md text-xs font-medium bg-[#282828] text-[#999] hover:bg-[#333] hover:text-white transition-colors border border-[#333]'
@@ -94,66 +97,45 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
-      {showProfile && <ProfileModal onClose={(c) => { setShowProfile(false); if (c) window.location.reload() }} />}
-      {editUser    && <EditUserModal user={editUser} onClose={(c) => { setEditUser(null); if (c) fetchUsers() }} />}
+      {editUser    && <EditUserModal user={editUser} divisions={divisions} onClose={(c) => { setEditUser(null); if (c) fetchUsers() }} />}
 
-      {/* Nav */}
-      <nav
-        className="flex items-center justify-between px-6 bg-[#181818] border-b border-[#2a2a2a]"
-        style={{ borderTop: '3px solid #f60300', minHeight: 56 }}
-      >
-        <div className="flex items-center gap-3">
-          <TatumLogo width={110} />
+      {/* Delete confirm modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 px-4">
+          <div className="bg-[#222] border border-[#333] rounded-md w-full max-w-sm p-7">
+            <h2 className="font-bold text-base mb-2">Delete user</h2>
+            <p className="text-[#888] text-sm mb-6">Are you sure you want to delete <span className="text-white font-semibold">{confirmDelete.username}</span>? This action cannot be undone.</p>
+            <div className="flex gap-2">
+              <button onClick={() => handleDeleteUser(confirmDelete)} className="flex-1 bg-[#f60300] hover:bg-[#d90200] text-white font-semibold rounded-md py-2.5 text-sm transition-colors">Delete</button>
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 bg-[#282828] hover:bg-[#333] text-[#999] hover:text-white font-medium rounded-md py-2.5 text-sm transition-colors border border-[#333]">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Navbar
+        badge={
           <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-[#200000] text-[#f60300] border border-[#f60300]/25">
             Admin
           </span>
-        </div>
-
-        <div className="flex items-center gap-5">
-          {user?.role === 'engineer' && (
+        }
+        extra={
+          user?.role === 'engineer' && (
             <button
               onClick={() => navigate('/engineer')}
               className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
             >Engineer Panel</button>
-          )}
-
-          <div className="relative" ref={userMenuRef}>
-            <button
-              onClick={() => setShowUserMenu(v => !v)}
-              className="flex items-center gap-2 text-[#999] hover:text-white transition-colors"
-            >
-              <span className="w-7 h-7 rounded bg-[#f60300] flex items-center justify-center text-white text-xs font-bold select-none">
-                {user?.username?.[0]?.toUpperCase()}
-              </span>
-              <span className="text-xs">{user?.username}</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-[#222] border border-[#333] rounded-md shadow-2xl z-50 py-1">
-                <button onClick={() => { setShowProfile(true); setShowUserMenu(false) }}
-                  className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors">
-                  Modifica profilo
-                </button>
-                <div className="border-t border-[#333] my-1" />
-                <button onClick={handleLogout}
-                  className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#200000] transition-colors">
-                  Esci
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
+          )
+        }
+      />
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-8">
 
         {/* Header */}
         <div className="mb-8">
-          <p className="lbl mb-1">Pannello Admin</p>
-          <h1 className="text-xl font-bold">Gestione Utenti & Divisioni</h1>
+          <p className="lbl mb-1">Admin Panel</p>
+          <h1 className="text-xl font-bold">Users & Divisions</h1>
         </div>
 
         {/* Notification */}
@@ -166,8 +148,8 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-[#333]">
           {[
-            { id: 'users',     label: `Utenti (${users.length})` },
-            { id: 'divisions', label: `Divisioni (${divisions.length})` },
+            { id: 'users',     label: `Users (${users.length})` },
+            { id: 'divisions', label: `Divisions (${divisions.length})` },
           ].map(t => (
             <button
               key={t.id}
@@ -188,44 +170,44 @@ export default function AdminDashboard() {
             {/* Actions row */}
             <div className="flex items-center gap-2 mb-5">
               <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className={selCls} style={{ width: 150 }}>
-                <option value="all">Tutti i ruoli</option>
+                <option value="all">All roles</option>
                 <option value="driver">Driver</option>
                 <option value="engineer">Engineer</option>
               </select>
               <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className={selCls} style={{ width: 150 }}>
-                <option value="all">Tutti i team</option>
+                <option value="all">All teams</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <select value={filterActive} onChange={e => setFilterActive(e.target.value)} className={selCls} style={{ width: 150 }}>
-                <option value="all">Tutti gli stati</option>
-                <option value="active">Solo attivi</option>
-                <option value="inactive">Solo disabilitati</option>
+                <option value="all">All statuses</option>
+                <option value="active">Active only</option>
+                <option value="inactive">Disabled only</option>
               </select>
               <div className="flex-1" />
-              <button onClick={() => setShowAssign(v => !v)} className={btnSec}>Assegna divisione</button>
-              <button onClick={() => setShowCreateUser(v => !v)} className={btnPri}>+ Nuovo utente</button>
+              <button onClick={() => setShowAssign(v => !v)} className={btnSec}>Assign division</button>
+              <button onClick={() => setShowCreateUser(v => !v)} className={`${btnPri} normal-case`}>+ New user</button>
             </div>
 
             {/* Assign form */}
             {showAssign && (
               <form onSubmit={handleAssign} className="bg-[#222] border border-[#333] rounded-md p-5 mb-4 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="lbl">Utente</label>
+                  <label className="lbl">User</label>
                   <select value={assign.user_id} onChange={e => setAssign({...assign, user_id: e.target.value})} className={selCls} required>
-                    <option value="">Seleziona utente</option>
+                    <option value="">Select user</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="lbl">Divisione</label>
+                  <label className="lbl">Division</label>
                   <select value={assign.division_id} onChange={e => setAssign({...assign, division_id: e.target.value})} className={selCls} required>
-                    <option value="">Seleziona divisione</option>
+                    <option value="">Select division</option>
                     {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2 flex gap-2">
-                  <button type="submit" className={btnPri}>Assegna</button>
-                  <button type="button" onClick={() => setShowAssign(false)} className={btnSec}>Annulla</button>
+                  <button type="submit" className={btnPri}>Assign</button>
+                  <button type="button" onClick={() => setShowAssign(false)} className={btnSec}>Cancel</button>
                 </div>
               </form>
             )}
@@ -239,17 +221,17 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="lbl">Password</label>
-                  <input type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className={inputCls} required placeholder="Password" />
+                  <PasswordInput value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className={inputCls} required placeholder="Password" />
                 </div>
                 <div>
-                  <label className="lbl">Ruolo</label>
+                  <label className="lbl">Role</label>
                   <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} className={selCls}>
                     <option value="driver">Driver</option>
                     <option value="engineer">Engineer</option>
                   </select>
                 </div>
                 <div>
-                  <label className="lbl">Piattaforma</label>
+                  <label className="lbl">Platform</label>
                   <select value={newUser.platform} onChange={e => setNewUser({...newUser, platform: e.target.value})} className={selCls}>
                     <option value="PC">PC</option>
                     <option value="PS5">PS5</option>
@@ -264,6 +246,13 @@ export default function AdminDashboard() {
                     <option value="Test">Test</option>
                   </select>
                 </div>
+                <div>
+                  <label className="lbl">Division <span className="text-[#555] normal-case tracking-normal" style={{fontSize:'10px'}}>(optional)</span></label>
+                  <select value={newUser.division_id} onChange={e => setNewUser({...newUser, division_id: e.target.value})} className={selCls}>
+                    <option value="">No division</option>
+                    {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
                 <div className="flex items-center gap-3 pt-5">
                   <input
                     type="checkbox" id="is_admin"
@@ -274,8 +263,8 @@ export default function AdminDashboard() {
                   <label htmlFor="is_admin" className="lbl cursor-pointer" style={{ marginBottom: 0 }}>Admin</label>
                 </div>
                 <div className="col-span-2 flex gap-2">
-                  <button type="submit" className={btnPri}>Crea utente</button>
-                  <button type="button" onClick={() => setShowCreateUser(false)} className={btnSec}>Annulla</button>
+                  <button type="submit" className={btnPri}>Create user</button>
+                  <button type="button" onClick={() => setShowCreateUser(false)} className={btnSec}>Cancel</button>
                 </div>
               </form>
             )}
@@ -285,7 +274,7 @@ export default function AdminDashboard() {
               <table className="w-full">
                 <thead>
                   <tr style={{ background: '#1c1c1c', borderBottom: '1px solid #333' }}>
-                    {['Username', 'Ruolo', 'Team', 'Porta', 'Stato', ''].map(h => (
+                    {['Username', 'Role', 'Team', 'Division', 'Port', 'Status', ''].map(h => (
                       <th key={h} className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#555]">{h}</th>
                     ))}
                   </tr>
@@ -310,6 +299,11 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-5 py-3.5 text-[#666] text-sm capitalize">{u.role}</td>
                       <td className="px-5 py-3.5 text-[#666] text-sm">{u.team_category || '—'}</td>
+                      <td className="px-5 py-3.5 text-[#666] text-sm">
+                        {u.divisions?.length > 0
+                          ? u.divisions.map(d => divisions.find(x => x.id === d.id)?.name).filter(Boolean).join(', ') || '—'
+                          : '—'}
+                      </td>
                       <td className="px-5 py-3.5 font-mono text-sm text-[#555]">{u.port || '—'}</td>
                       <td className="px-5 py-3.5">
                         <span
@@ -318,14 +312,32 @@ export default function AdminDashboard() {
                             ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
                             : { background: '#202020', color: '#555',    border: '1px solid #333' }}
                         >
-                          {u.is_active ? 'Attivo' : 'Disabilitato'}
+                          {u.is_active ? 'Active' : 'Disabled'}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <button
-                          onClick={() => setEditUser(u)}
-                          className="text-[11px] text-[#666] hover:text-white transition-colors uppercase tracking-wider"
-                        >Modifica</button>
+                        <div className="flex items-center gap-3">
+                          {/* Edit icon */}
+                          <button
+                            onClick={() => setEditUser(u)}
+                            title="Edit"
+                            className="text-[#555] hover:text-white transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828A2 2 0 0110.414 16H8v-2.414a2 2 0 01.586-1.414z" />
+                            </svg>
+                          </button>
+                          {/* Delete icon */}
+                          <button
+                            onClick={() => setConfirmDelete(u)}
+                            title="Delete"
+                            className="text-[#555] hover:text-[#f60300] transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M3 7h18" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -346,7 +358,7 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => { setSelectedDivision(null); setDivisionData(null) }}
                       className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors mb-2 block"
-                    >← Tutte le divisioni</button>
+                    >← All divisions</button>
                     <h2 className="text-lg font-bold">{selectedDivision.name}</h2>
                     <p className="text-[#555] text-xs mt-0.5">{selectedDivision.simulator}</p>
                   </div>
@@ -366,7 +378,7 @@ export default function AdminDashboard() {
                       <div className="grid grid-cols-3 gap-4 mb-8">
                         <div className="bg-[#222] border border-[#333] rounded-md p-5 text-center">
                           <p className="text-2xl font-bold font-mono">{divisionData.members.length}</p>
-                          <p className="lbl mt-1">Totale membri</p>
+                          <p className="lbl mt-1">Total members</p>
                         </div>
                         <div className="bg-[#222] border border-[#333] rounded-md p-5 text-center">
                           <p className="text-2xl font-bold font-mono text-[#f60300]">{drivers.length}</p>
@@ -374,7 +386,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="bg-[#222] border border-[#333] rounded-md p-5 text-center">
                           <p className="text-2xl font-bold font-mono text-[#888]">{engineers.length}</p>
-                          <p className="lbl mt-1">Ingegneri</p>
+                          <p className="lbl mt-1">Engineers</p>
                         </div>
                       </div>
 
@@ -386,7 +398,7 @@ export default function AdminDashboard() {
                             <table className="w-full">
                               <thead>
                                 <tr style={{ background: '#1c1c1c', borderBottom: '1px solid #333' }}>
-                                  {['Username', 'Team', 'Piattaforma', 'Porta', 'Stato'].map(h => (
+                                  {['Username', 'Team', 'Platform', 'Port', 'Status'].map(h => (
                                     <th key={h} className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#555]">{h}</th>
                                   ))}
                                 </tr>
@@ -412,7 +424,7 @@ export default function AdminDashboard() {
                                         style={m.is_active
                                           ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
                                           : { background: '#202020', color: '#555', border: '1px solid #333' }}>
-                                        {m.is_active ? 'Attivo' : 'Disabilitato'}
+                                        {m.is_active ? 'Active' : 'Disabled'}
                                       </span>
                                     </td>
                                   </tr>
@@ -426,12 +438,12 @@ export default function AdminDashboard() {
                       {/* Engineers */}
                       {engineers.length > 0 && (
                         <div>
-                          <p className="lbl mb-3">Ingegneri</p>
+                          <p className="lbl mb-3">Engineers</p>
                           <div className="bg-[#222] border border-[#333] rounded-md overflow-hidden">
                             <table className="w-full">
                               <thead>
                                 <tr style={{ background: '#1c1c1c', borderBottom: '1px solid #333' }}>
-                                  {['Username', 'Piattaforma', 'Stato'].map(h => (
+                                  {['Username', 'Platform', 'Status'].map(h => (
                                     <th key={h} className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#555]">{h}</th>
                                   ))}
                                 </tr>
@@ -455,7 +467,7 @@ export default function AdminDashboard() {
                                         style={m.is_active
                                           ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
                                           : { background: '#202020', color: '#555', border: '1px solid #333' }}>
-                                        {m.is_active ? 'Attivo' : 'Disabilitato'}
+                                        {m.is_active ? 'Active' : 'Disabled'}
                                       </span>
                                     </td>
                                   </tr>
@@ -473,25 +485,25 @@ export default function AdminDashboard() {
               // ── Lista divisioni ────────────────────────
               <>
             <div className="flex justify-between items-center mb-5">
-              <p className="lbl">Divisioni registrate</p>
+              <p className="lbl">Registered divisions</p>
               <button onClick={() => setShowCreateDivision(v => !v)} className={btnPri}>
-                + Nuova divisione
+                + New division
               </button>
             </div>
 
             {showCreateDivision && (
               <form onSubmit={handleCreateDivision} className="bg-[#222] border border-[#333] rounded-md p-5 mb-5 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="lbl">Nome divisione</label>
-                  <input value={newDivision.name} onChange={e => setNewDivision({...newDivision, name: e.target.value})} className={inputCls} required placeholder="es. F1 25 Main" />
+                  <label className="lbl">Division name</label>
+                  <input value={newDivision.name} onChange={e => setNewDivision({...newDivision, name: e.target.value})} className={inputCls} required placeholder="e.g. F1 25 Main" />
                 </div>
                 <div>
-                  <label className="lbl">Simulatore</label>
-                  <input value={newDivision.simulator} onChange={e => setNewDivision({...newDivision, simulator: e.target.value})} className={inputCls} required placeholder="es. F1 25, ACC, iRacing" />
+                  <label className="lbl">Simulator</label>
+                  <input value={newDivision.simulator} onChange={e => setNewDivision({...newDivision, simulator: e.target.value})} className={inputCls} required placeholder="e.g. F1 25, ACC, iRacing" />
                 </div>
                 <div className="col-span-2 flex gap-2">
-                  <button type="submit" className={btnPri}>Crea divisione</button>
-                  <button type="button" onClick={() => setShowCreateDivision(false)} className={btnSec}>Annulla</button>
+                  <button type="submit" className={btnPri}>Create division</button>
+                  <button type="button" onClick={() => setShowCreateDivision(false)} className={btnSec}>Cancel</button>
                 </div>
               </form>
             )}
@@ -500,7 +512,7 @@ export default function AdminDashboard() {
               {divisions.map((d, i) => (
                 <div
                   key={d.id}
-                  onDoubleClick={() => openDivision(d)}
+                  onClick={() => openDivision(d)}
                   className="flex items-center justify-between px-5 py-4 hover:bg-[#282828] transition-colors cursor-pointer"
                   style={{ borderBottom: i < divisions.length - 1 ? '1px solid #2a2a2a' : 'none' }}
                 >
@@ -514,7 +526,7 @@ export default function AdminDashboard() {
                       ? { background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }
                       : { background: '#202020', color: '#555',    border: '1px solid #333' }}
                   >
-                    {d.is_active ? 'Attiva' : 'Disattiva'}
+                    {d.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               ))}

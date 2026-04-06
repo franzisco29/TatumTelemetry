@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import API from '../api'
 import { useAuth } from '../context/AuthContext'
+import PasswordInput from './PasswordInput'
 
 export default function ProfileModal({ onClose }) {
   const { user, login } = useAuth()
@@ -23,15 +24,15 @@ export default function ProfileModal({ onClose }) {
       if (form.password) payload.password = form.password
       if (form.platform !== user.platform) payload.platform = form.platform
       if (Object.keys(payload).length === 0) {
-        setError('Nessuna modifica effettuata')
+        setError('No changes made')
         setLoading(false)
         return
       }
       await API.patch('/auth/profile', payload)
-      setMessage('Profilo aggiornato!')
+      setMessage('Profile updated!')
       setTimeout(() => onClose(true), 1500)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Errore')
+      setError(err.response?.data?.detail || 'Error')
     } finally {
       setLoading(false)
     }
@@ -46,7 +47,7 @@ export default function ProfileModal({ onClose }) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="lbl mb-0.5">Account</p>
-            <h2 className="font-bold text-base">Il mio profilo</h2>
+            <h2 className="font-bold text-base">My profile</h2>
           </div>
           <button onClick={() => onClose(false)} className="text-[#555] hover:text-white transition-colors text-lg leading-none">✕</button>
         </div>
@@ -62,17 +63,16 @@ export default function ProfileModal({ onClose }) {
             />
           </div>
           <div>
-            <label className="lbl">Nuova password</label>
-            <input
-              type="password"
+            <label className="lbl">New password</label>
+            <PasswordInput
               value={form.password}
               onChange={e => setForm({...form, password: e.target.value})}
               className={inputCls}
-              placeholder="Lascia vuoto per non cambiare"
+              placeholder="Leave blank to keep unchanged"
             />
           </div>
           <div>
-            <label className="lbl">Piattaforma</label>
+            <label className="lbl">Platform</label>
             <select
               value={form.platform}
               onChange={e => setForm({...form, platform: e.target.value})}
@@ -93,14 +93,14 @@ export default function ProfileModal({ onClose }) {
               disabled={loading}
               className="flex-1 bg-[#f60300] hover:bg-[#d90200] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-md py-2.5 text-sm transition-colors"
             >
-              {loading ? 'Salvataggio…' : 'Salva'}
+              {loading ? 'Saving…' : 'Save'}
             </button>
             <button
               type="button"
               onClick={() => onClose(false)}
               className="flex-1 bg-[#282828] hover:bg-[#333] text-[#999] hover:text-white font-medium rounded-md py-2.5 text-sm transition-colors border border-[#333]"
             >
-              Annulla
+              Cancel
             </button>
           </div>
         </form>
