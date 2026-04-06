@@ -239,12 +239,21 @@ export default function EngineerDashboard() {
               Client active
             </div>
           ) : (
-            <button
-              onClick={() => navigate('/download')}
-              className="text-[11px] uppercase tracking-wider text-[#f60300] border border-[#f60300]/30 rounded px-2.5 py-1 hover:bg-[#f60300]/10 transition-colors"
-            >
-              Download Client
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { window.location.href = 'tatum://launch' }}
+                className="text-[11px] uppercase tracking-wider text-[#f5a623] border border-[#f5a623]/30 rounded px-2.5 py-1 hover:bg-[#f5a623]/10 transition-colors"
+                title="Avvia il client se è già installato"
+              >
+                Avvia Client
+              </button>
+              <button
+                onClick={() => navigate('/download')}
+                className="text-[11px] uppercase tracking-wider text-[#f60300] border border-[#f60300]/30 rounded px-2.5 py-1 hover:bg-[#f60300]/10 transition-colors"
+              >
+                Download
+              </button>
+            </div>
           )}
           {user?.is_admin && (
             <button onClick={() => navigate('/admin')}
