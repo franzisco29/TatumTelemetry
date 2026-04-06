@@ -22,7 +22,7 @@ if sys.platform == "win32":
         sys.exit(0)
 
 # ── Config ─────────────────────────────────────────
-VERSION       = "0.1.0"
+VERSION       = "0.3.0"
 LOCAL_PORT    = 7842
 UDP_PORT      = 20777
 WS_URL        = "wss://tatumtelemetry.it"
