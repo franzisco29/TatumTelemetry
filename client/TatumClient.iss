@@ -4,7 +4,7 @@
 ; ─────────────────────────────────────────────────────────────────────────────
 
 #define AppName    "Tatum Telemetry Client"
-#define AppVersion "0.3.1"
+#define AppVersion "0.4.0"
 #define AppPublisher "Tatum Res-Tech"
 #define AppURL     "https://tatumtelemetry.it"
 #define AppExe     "TatumClient.exe"

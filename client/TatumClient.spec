@@ -5,19 +5,19 @@ from PyInstaller.utils.win32.versioninfo import (
 
 version_info = VSVersionInfo(
     ffi=FixedFileInfo(
-        filevers=(0, 3, 1, 0),
-        prodvers=(0, 3, 1, 0),
+        filevers=(0, 4, 0, 0),
+        prodvers=(0, 4, 0, 0),
     ),
     kids=[
         StringFileInfo([
             StringTable('040904B0', [
                 StringStruct('CompanyName',      'Tatum Res-Tech'),
                 StringStruct('FileDescription',  'Tatum Telemetry Client'),
-                StringStruct('FileVersion',      '0.3.1'),
+                StringStruct('FileVersion',      '0.4.0'),
                 StringStruct('InternalName',     'TatumClient'),
                 StringStruct('LegalCopyright',   '\xa9 2026 Tatum Res-Tech'),
                 StringStruct('ProductName',      'Tatum Telemetry Client'),
-                StringStruct('ProductVersion',   '0.3.1'),
+                StringStruct('ProductVersion',   '0.4.0'),
             ])
         ]),
         VarFileInfo([VarStruct('Translation', [0x0409, 1200])])

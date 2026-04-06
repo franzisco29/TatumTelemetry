@@ -22,10 +22,10 @@ if sys.platform == "win32":
         sys.exit(0)
 
 # ── Config ─────────────────────────────────────────
-VERSION       = "0.3.1"
+VERSION       = "0.4.0"
 LOCAL_PORT    = 7842
 UDP_PORT      = 20777
-WS_URL        = "wss://tatumtelemetry.it"
+WS_URL        = "ws://4.232.170.59:30001"
 if getattr(sys, 'frozen', False):
     APP_DIR = Path(sys.executable).parent  # cartella installazione
 else:
@@ -235,8 +235,21 @@ def load_icon():
 
 def update_tray():
     if tray_icon:
-        status = f"Connected: {state['driver']}" if state['connected'] else "Disconnected"
-        tray_icon.title = f"Tatum Telemetry — {status}"
+        if state['connected']:
+            driver = state['driver'] or 'driver'
+            title       = f"Tatum Telemetry — {driver}"
+            status_item = MenuItem(f"[ LIVE ]  {driver}", lambda: None, default=True)
+        else:
+            title       = "Tatum Telemetry — Disconnected"
+            status_item = MenuItem("Disconnected", lambda: None, enabled=False)
+        tray_icon.title = title
+        tray_icon.menu  = Menu(
+            MenuItem("Tatum Telemetry", lambda: None, enabled=False),
+            Menu.SEPARATOR,
+            status_item,
+            Menu.SEPARATOR,
+            MenuItem("Quit", lambda icon, item: quit_app())
+        )
 
 def quit_app():
     stop_ws()
@@ -250,7 +263,7 @@ def build_tray():
     menu  = Menu(
         MenuItem("Tatum Telemetry", lambda: None, enabled=False),
         Menu.SEPARATOR,
-        MenuItem(lambda _: f"{'🟢 Connected' if state['connected'] else '⚫ Disconnected'}", lambda: None, enabled=False),
+        MenuItem("Disconnected", lambda: None, enabled=False),
         Menu.SEPARATOR,
         MenuItem("Quit", lambda icon, item: quit_app())
     )

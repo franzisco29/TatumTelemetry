@@ -74,6 +74,7 @@ export default function EngineerDashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [drivers, setDrivers]           = useState([])
+  const driversRef = useRef([])
   const [connected, setConnected]       = useState(null)
   const [ws, setWs]                     = useState(null)
   const [loading, setLoading]           = useState(true)
@@ -96,8 +97,15 @@ export default function EngineerDashboard() {
 
   const checkClient = async () => {
     try {
-      await fetch('http://localhost:7842/status')
+      const res = await fetch('http://localhost:7842/status', { signal: AbortSignal.timeout(1500) })
+      const data = await res.json()
       setClientRunning(true)
+      if (data.connected && data.driver) {
+        setConnected(prev => {
+          if (prev) return prev
+          return driversRef.current.find(d => d.username === data.driver) || null
+        })
+      }
     } catch {
       setClientRunning(false)
     }
@@ -105,13 +113,14 @@ export default function EngineerDashboard() {
 
   useEffect(() => {
     checkClient()
-    const iv = setInterval(checkClient, 30000)
+    const iv = setInterval(checkClient, 5000)
     return () => clearInterval(iv)
   }, [])
 
   const fetchDrivers = async () => {
     try {
       const res = await API.get('/drivers')
+      driversRef.current = res.data.drivers
       setDrivers(res.data.drivers)
     } catch (err) {
       console.error(err)
