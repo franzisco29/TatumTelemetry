@@ -4,8 +4,8 @@
 ; ─────────────────────────────────────────────────────────────────────────────
 
 #define AppName    "Tatum Telemetry Client"
-#define AppVersion "0.3.0"
-#define AppPublisher "Tatum RES Tech"
+#define AppVersion "0.3.1"
+#define AppPublisher "Tatum Res-Tech"
 #define AppURL     "https://tatumtelemetry.it"
 #define AppExe     "TatumClient.exe"
 #define AppMutex   "TatumTelemetryClientMutex"

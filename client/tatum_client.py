@@ -22,11 +22,18 @@ if sys.platform == "win32":
         sys.exit(0)
 
 # ── Config ─────────────────────────────────────────
-VERSION       = "0.3.0"
+VERSION       = "0.3.1"
 LOCAL_PORT    = 7842
 UDP_PORT      = 20777
 WS_URL        = "wss://tatumtelemetry.it"
-LOG_FILE      = Path.home() / "TatumClient.log"
+if getattr(sys, 'frozen', False):
+    APP_DIR = Path(sys.executable).parent  # cartella installazione
+else:
+    APP_DIR = Path(__file__).parent
+
+LOG_DIR  = APP_DIR / "log"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+LOG_FILE = LOG_DIR / "TatumClient.log"
 
 logging.basicConfig(
     level=logging.INFO,

@@ -1,4 +1,28 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.win32.versioninfo import (
+    VSVersionInfo, FixedFileInfo, StringFileInfo, StringTable, StringStruct, VarFileInfo, VarStruct
+)
+
+version_info = VSVersionInfo(
+    ffi=FixedFileInfo(
+        filevers=(0, 3, 1, 0),
+        prodvers=(0, 3, 1, 0),
+    ),
+    kids=[
+        StringFileInfo([
+            StringTable('040904B0', [
+                StringStruct('CompanyName',      'Tatum Res-Tech'),
+                StringStruct('FileDescription',  'Tatum Telemetry Client'),
+                StringStruct('FileVersion',      '0.3.1'),
+                StringStruct('InternalName',     'TatumClient'),
+                StringStruct('LegalCopyright',   '\xa9 2026 Tatum Res-Tech'),
+                StringStruct('ProductName',      'Tatum Telemetry Client'),
+                StringStruct('ProductVersion',   '0.3.1'),
+            ])
+        ]),
+        VarFileInfo([VarStruct('Translation', [0x0409, 1200])])
+    ]
+)
 
 
 a = Analysis(
@@ -36,4 +60,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['icons\\icon.ico'],
+    version=version_info,
 )
