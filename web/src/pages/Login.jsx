@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
@@ -13,8 +13,17 @@ export default function Login() {
   const [resetForm, setResetForm] = useState({ username: '', old_password: '', new_password: '' })
   const [resetMsg, setResetMsg]   = useState('')
   const [resetErr, setResetErr]   = useState('')
-  const { login }  = useAuth()
+  const { login, user, loading: authLoading } = useAuth()
   const navigate   = useNavigate()
+
+  // Se l'utente è già autenticato, reindirizza subito al suo dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === 'driver') navigate('/driver', { replace: true })
+      else if (user.is_admin)     navigate('/admin', { replace: true })
+      else                        navigate('/engineer', { replace: true })
+    }
+  }, [user, authLoading, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -22,9 +31,10 @@ export default function Login() {
     setLoading(true)
     try {
       const user = await login(username, password)
-      if (user.role === 'driver') navigate('/driver')
-      else if (user.is_admin)     navigate('/admin')
-      else                        navigate('/engineer')
+      // replace: true evita che la pagina login resti nello stack history
+      if (user.role === 'driver') navigate('/driver', { replace: true })
+      else if (user.is_admin)     navigate('/admin', { replace: true })
+      else                        navigate('/engineer', { replace: true })
     } catch (err) {
       if (err.response?.status === 403) {
         setError('Your account has been disabled. Contact an admin.')

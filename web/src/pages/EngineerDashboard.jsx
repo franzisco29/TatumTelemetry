@@ -13,10 +13,11 @@ const btnPri     = 'px-4 py-2 rounded-md text-xs font-semibold uppercase trackin
 const btnSec     = 'px-4 py-2 rounded-md text-xs border border-[#2e2e2e] bg-[#252525] text-[#888] hover:bg-[#2e2e2e] hover:text-white transition-colors'
 const btnOutline = 'px-4 py-2 rounded-md text-xs font-semibold uppercase tracking-wider border border-[#f60300] text-[#f60300] hover:bg-[#f60300] hover:text-white transition-colors'
 
-function DriverCard({ driver, connected, onConnect, onDisconnect }) {
-  const isActive = connected?.id === driver.id
-  const isOnline = driver.online
-  const accent   = isActive ? '#f60300' : isOnline ? '#00c000' : '#2e2e2e'
+function DriverCard({ driver, connected, connecting, onConnect, onDisconnect }) {
+  const isActive   = connected?.id === driver.id
+  const isOnline   = driver.online
+  const isConnecting = connecting && !isActive
+  const accent     = isActive ? '#f60300' : isOnline ? '#00c000' : '#2e2e2e'
 
   return (
     <div
@@ -56,8 +57,10 @@ function DriverCard({ driver, connected, onConnect, onDisconnect }) {
           {isOnline ? (
             <button
               onClick={() => isActive ? onDisconnect() : onConnect(driver)}
+              disabled={isConnecting && !isActive}
               className={isActive ? btnOutline : btnPri}
-            >{isActive ? 'Stop' : 'Connect'}</button>
+              style={isConnecting && !isActive ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            >{isActive ? 'Stop' : isConnecting ? 'Connecting...' : 'Connect'}</button>
           ) : (
             <span className="text-[11px] text-[#444] uppercase tracking-wider">Offline</span>
           )}
@@ -82,6 +85,8 @@ export default function EngineerDashboard() {
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterOnline, setFilterOnline]     = useState(false)
   const [clientRunning, setClientRunning]   = useState(false)
+  const [connecting, setConnecting]         = useState(false)
+  const [connectMsg, setConnectMsg]         = useState(null)
 
   useEffect(() => {
     fetchDrivers()
@@ -99,7 +104,7 @@ export default function EngineerDashboard() {
       }
     }
     checkClient()
-    const iv = setInterval(checkClient, 3000)
+    const iv = setInterval(checkClient, 30000)
     return () => clearInterval(iv)
   }, [])
 
@@ -114,13 +119,20 @@ export default function EngineerDashboard() {
     }
   }
 
+  const showMsg = (text, ok = true) => {
+    setConnectMsg({ text, ok })
+    setTimeout(() => setConnectMsg(null), 4000)
+  }
+
   const connect = async (driver) => {
+    if (connecting) return
     if (ws) ws.close()
+    setConnecting(true)
 
     // Prova a comandare il client locale
     try {
       const tokenRes = await API.get('/auth/client-token')
-      await fetch('http://localhost:7842/connect', {
+      const res = await fetch('http://localhost:7842/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -129,16 +141,21 @@ export default function EngineerDashboard() {
           driver: driver.username
         })
       })
+      if (!res.ok) throw new Error('client_error')
       setConnected(driver)
+      showMsg(`Client connesso a ${driver.username}`)
+      setConnecting(false)
       return
     } catch {
       // Client non disponibile — usa WebSocket browser
     }
 
     // Fallback WebSocket browser
+    showMsg('Client non attivo — avvia TatumClient per usare software esterni', false)
     const socket = new WebSocket(`${WS_URL}/ws/${driver.port}`)
-    socket.onopen  = () => { setConnected(driver); setWs(socket) }
+    socket.onopen  = () => { setConnected(driver); setWs(socket); setConnecting(false) }
     socket.onclose = () => { setConnected(null);   setWs(null) }
+    socket.onerror = () => { showMsg('Connessione WebSocket fallita', false); setConnecting(false) }
   }
 
   const disconnect = async () => {
@@ -149,6 +166,18 @@ export default function EngineerDashboard() {
     setConnected(null)
     setWs(null)
   }
+
+  // Chiudi connessione quando si naviga via (es. tasto Back del browser)
+  useEffect(() => {
+    return () => {
+      try { fetch('http://localhost:7842/disconnect', { method: 'POST' }) } catch {}
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => { if (ws) ws.close() }
+  }, [ws])
+
   const handleLogout = () => { disconnect(); logout(); navigate('/login') }
 
   useEffect(() => {
@@ -174,6 +203,21 @@ export default function EngineerDashboard() {
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
       {showProfile && <ProfileModal onClose={(c) => { setShowProfile(false); if (c) window.location.reload() }} />}
+
+      {/* Toast notification */}
+      {connectMsg && (
+        <div
+          className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-md text-xs font-medium shadow-2xl"
+          style={{
+            background: connectMsg.ok ? '#0d1f0d' : '#1f0000',
+            border: '1px solid ' + (connectMsg.ok ? 'rgba(0,192,0,0.4)' : 'rgba(246,3,0,0.4)'),
+            color: connectMsg.ok ? '#00c000' : '#f60300',
+            maxWidth: 320
+          }}
+        >
+          {connectMsg.text}
+        </div>
+      )}
 
       <nav
         className="flex items-center justify-between px-6 bg-[#191919] border-b border-[#2e2e2e]"
@@ -323,7 +367,7 @@ export default function EngineerDashboard() {
         ) : (
           <div className="space-y-2">
             {filtered.map(driver => (
-              <DriverCard key={driver.id} driver={driver} connected={connected} onConnect={connect} onDisconnect={disconnect} />
+              <DriverCard key={driver.id} driver={driver} connected={connected} connecting={connecting} onConnect={connect} onDisconnect={disconnect} />
             ))}
           </div>
         )}

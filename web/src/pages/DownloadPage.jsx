@@ -16,16 +16,18 @@ export default function DownloadPage() {
   useEffect(() => {
     fetchRelease()
     checkClient()
-    const iv = setInterval(checkClient, 5000)
+    const iv = setInterval(checkClient, 30000)
     return () => clearInterval(iv)
   }, [])
 
   const fetchRelease = async () => {
     try {
+      const headers = GITHUB_TOKEN ? { Authorization: `Bearer ${GITHUB_TOKEN}` } : {}
       const res = await fetch(
         `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-        { headers: { Authorization: `Bearer ${GITHUB_TOKEN}` } }
+        { headers }
       )
+      if (!res.ok) throw new Error(`GitHub API ${res.status}`)
       const data = await res.json()
       setRelease(data)
     } catch (err) {
@@ -58,11 +60,24 @@ export default function DownloadPage() {
   const handleLogout = () => { logout(); navigate('/login') }
 
   const getIcon = (name) => {
+    if (name.includes('Setup') || name.includes('setup') || name.includes('installer')) return '📦'
     if (name.includes('.exe'))    return '🪟'
     if (name.includes('mac') || name.includes('darwin')) return '🍎'
     if (name.includes('linux'))   return '🐧'
     return '📦'
   }
+
+  const getLabel = (name) => {
+    if (name.includes('Setup') || name.includes('setup') || name.includes('installer'))
+      return 'Windows Installer (consigliato)'
+    if (name.includes('.exe'))    return 'Windows (eseguibile standalone)'
+    if (name.includes('mac') || name.includes('darwin')) return 'macOS'
+    if (name.includes('linux'))   return 'Linux'
+    return name
+  }
+
+  const isInstaller = (name) =>
+    name.includes('Setup') || name.includes('setup') || name.includes('installer')
 
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
@@ -128,6 +143,7 @@ export default function DownloadPage() {
             <p className="text-xs uppercase tracking-widest text-[#555]">Loading...</p>
           </div>
         ) : release ? (
+          <>
           <div className="bg-[#222] border border-[#333] rounded-md overflow-hidden">
             <div className="px-5 py-4 border-b border-[#2a2a2a] flex items-center justify-between">
               <div>
@@ -144,14 +160,23 @@ export default function DownloadPage() {
 
             {/* Assets */}
             <div className="divide-y divide-[#2a2a2a]">
-              {release.assets?.map(asset => (
-                <div key={asset.id} className="px-5 py-4 flex items-center justify-between hover:bg-[#282828] transition-colors">
+              {[...(release.assets || [])].sort((a, b) => isInstaller(b.name) - isInstaller(a.name)).map(asset => (
+                <div key={asset.id} className="px-5 py-4 flex items-center justify-between hover:bg-[#282828] transition-colors"
+                  style={isInstaller(asset.name) ? { background: '#1a1600' } : {}}>
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{getIcon(asset.name)}</span>
                     <div>
-                      <p className="text-sm font-medium">{asset.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{asset.name}</p>
+                        {isInstaller(asset.name) && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
+                            style={{ background: '#1f1600', color: '#f5a623', border: '1px solid rgba(245,166,35,0.35)' }}>
+                            Consigliato
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[#555] text-xs mt-0.5">
-                        {(asset.size / 1024 / 1024).toFixed(1)} MB
+                        {getLabel(asset.name)} · {(asset.size / 1024 / 1024).toFixed(1)} MB
                       </p>
                     </div>
                   </div>
@@ -173,6 +198,29 @@ export default function DownloadPage() {
               </div>
             )}
           </div>
+
+          {/* Istruzioni installazione */}
+          <div className="mt-6 bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-5 py-4">
+            <p className="lbl mb-3">Come installare</p>
+            <ol className="space-y-2.5">
+              {[
+                'Scarica TatumClientSetup.exe (consigliato)',
+                'Avvia il file e segui il wizard di installazione',
+                "Spunta \"Avvia automaticamente con Windows\" per non doverlo rilanciare ad ogni avvio",
+                'Al termine verrà avviato automaticamente — cerca l\'icona nella barra di sistema (system tray)',
+                'Torna qui: la dashboard lo rileverà e potrai connetterti ai driver',
+              ].map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                    style={{ background: '#2a0000', color: '#f60300', border: '1px solid rgba(246,3,0,0.3)' }}>
+                    {i + 1}
+                  </span>
+                  <span className="text-xs text-[#888] leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          </>
         ) : (
           <div className="text-center py-12 border border-[#2a2a2a] rounded-md">
             <p className="text-[#555] text-sm">No releases available</p>

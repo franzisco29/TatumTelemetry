@@ -14,6 +14,13 @@ import websockets
 from pystray import Icon, Menu, MenuItem
 from PIL import Image
 
+# ── Single-instance guard (Windows) ────────────────
+if sys.platform == "win32":
+    import ctypes
+    _mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "TatumTelemetryClientMutex")
+    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        sys.exit(0)
+
 # ── Config ─────────────────────────────────────────
 VERSION       = "0.1.0"
 LOCAL_PORT    = 7842
