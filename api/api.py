@@ -63,6 +63,19 @@ class AssignDivisionRequest(BaseModel):
     user_id: int
     division_id: int
 
+class BulkUserEntry(BaseModel):
+    username: str
+    password: str
+    role: str
+    is_admin: bool = False
+    is_superuser: bool = False
+    platform: Optional[str] = None
+    team_category: Optional[str] = None
+    division_id: Optional[int] = None
+
+class BulkCreateUsersRequest(BaseModel):
+    users: list[BulkUserEntry]
+
 # ── HELPERS ────────────────────────────────────────
 
 def get_current_user(
@@ -194,7 +207,35 @@ def delete_user(
     crud.delete_user(db, user_id)
     return {"message": "Utente eliminato"}
 
-# ── DIVISIONS ──────────────────────────────────────
+@app.post("/admin/users/bulk")
+def bulk_create_users(
+    req: BulkCreateUsersRequest,
+    admin=Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    results = []
+    for entry in req.users:
+        if crud.get_user_by_username(db, entry.username):
+            results.append({"username": entry.username, "success": False, "error": "Username già esistente"})
+            continue
+        try:
+            user = crud.create_user(
+                db, entry.username, entry.password, entry.role,
+                entry.is_admin, entry.platform, entry.team_category,
+                is_superuser=entry.is_superuser
+            )
+            if user.role == "driver":
+                port = crud.get_next_available_port(db)
+                crud.assign_port(db, user.id, port)
+            if entry.division_id:
+                crud.assign_user_to_division(db, user.id, entry.division_id)
+            results.append({"username": entry.username, "success": True, "id": user.id})
+        except Exception as e:
+            results.append({"username": entry.username, "success": False, "error": str(e)})
+    created = sum(1 for r in results if r["success"])
+    return {"created": created, "total": len(results), "results": results}
+
+
 
 @app.get("/divisions")
 def get_divisions(user=Depends(get_current_user), db: Session = Depends(get_db)):

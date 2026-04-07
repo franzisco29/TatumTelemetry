@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import API from '../api'
 import EditUserModal from '../components/EditUserModal'
+import BulkUploadModal from '../components/BulkUploadModal'
 import PasswordInput from '../components/PasswordInput'
 import Navbar from '../components/Navbar'
 
@@ -20,6 +21,8 @@ export default function AdminDashboard() {
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'driver', platform: 'PC', team_category: 'Main', is_admin: false, division_id: '' })
   const [newDivision, setNewDivision]   = useState({ name: '', simulator: '' })
   const [assign, setAssign]             = useState({ user_id: '', division_id: '' })
+  const [showBulkUpload, setShowBulkUpload] = useState(false)
+  const [showBulkMenu, setShowBulkMenu] = useState(false)
   const [message, setMessage]           = useState('')
   const [selectedDivision, setSelectedDivision] = useState(null)
   const [divisionData, setDivisionData]         = useState(null)
@@ -30,7 +33,19 @@ export default function AdminDashboard() {
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterActive, setFilterActive]     = useState('all')
 
-  useEffect(() => { fetchUsers(); fetchDivisions() }, [])
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.bulk-menu')) {
+        setShowBulkMenu(false);
+      }
+    };
+    if (showBulkMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showBulkMenu]);
 
   const fetchUsers     = async () => { const r = await API.get('/admin/users'); setUsers(r.data.users) }
   const fetchDivisions = async () => { const r = await API.get('/divisions');   setDivisions(r.data.divisions) }
@@ -97,7 +112,8 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
-      {editUser    && <EditUserModal user={editUser} divisions={divisions} onClose={(c) => { setEditUser(null); if (c) fetchUsers() }} />}
+      {editUser       && <EditUserModal user={editUser} divisions={divisions} onClose={(c) => { setEditUser(null); if (c) fetchUsers() }} />}
+      {showBulkUpload && <BulkUploadModal divisions={divisions} onClose={(reload) => { setShowBulkUpload(false); if (reload) { fetchUsers(); notify('Utenti importati con successo!') } }} onSuccess={fetchUsers} />}
 
       {/* Delete confirm modal */}
       {confirmDelete && (
@@ -185,7 +201,33 @@ export default function AdminDashboard() {
               </select>
               <div className="flex-1" />
               <button onClick={() => setShowAssign(v => !v)} className={btnSec}>Assign division</button>
-              <button onClick={() => setShowCreateUser(v => !v)} className={`${btnPri} normal-case`}>+ New user</button>
+              <div className="relative bulk-menu inline-flex items-stretch rounded-md overflow-hidden">
+                <button
+                  onClick={() => setShowCreateUser(true)}
+                  className="px-4 py-2 flex items-center justify-center text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors"
+                >
+                  + New user
+                </button>
+                <button
+                  onClick={() => setShowBulkMenu(!showBulkMenu)}
+                  className="px-3 py-2 flex items-center justify-center text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors border-l border-white/10"
+                  title="Bulk add"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                    <path d="M3.5 4.5L6 7l2.5-2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                  </svg>
+                </button>
+                {showBulkMenu && (
+                  <div className="absolute top-full mt-1 right-0 bg-[#222] border border-[#333] rounded-md shadow-lg z-10 min-w-[120px]">
+                    <button
+                      onClick={() => { setShowBulkUpload(true); setShowBulkMenu(false) }}
+                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#333] transition-colors"
+                    >
+                      Bulk add
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Assign form */}
