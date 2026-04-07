@@ -17,12 +17,10 @@ export default function Login() {
   const { login, user, loading: authLoading } = useAuth()
   const navigate   = useNavigate()
 
-  // Se l'utente è già autenticato, reindirizza subito al suo dashboard
+  // Se l'utente è già autenticato, reindirizza subito alla home
   useEffect(() => {
     if (!authLoading && user) {
-      if (user.role === 'driver') navigate('/driver', { replace: true })
-      else if (user.is_admin)     navigate('/admin', { replace: true })
-      else                        navigate('/engineer', { replace: true })
+      navigate('/', { replace: true })
     }
   }, [user, authLoading, navigate])
 
@@ -31,11 +29,9 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const user = await login(username, password)
+      await login(username, password)
       // replace: true evita che la pagina login resti nello stack history
-      if (user.role === 'driver') navigate('/driver', { replace: true })
-      else if (user.is_admin)     navigate('/admin', { replace: true })
-      else                        navigate('/engineer', { replace: true })
+      navigate('/', { replace: true })
     } catch (err) {
       if (err.response?.status === 403) {
         setError('Your account has been disabled. Contact an admin.')

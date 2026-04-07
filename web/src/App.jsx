@@ -6,14 +6,14 @@ import DriverDashboard from './pages/DriverDashboard'
 import EngineerDashboard from './pages/EngineerDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import DivisionDetail from './pages/DivisionDetail'
+import Home from './pages/Home'
+import ProfilePage from './pages/ProfilePage'
 import DownloadPage from './pages/DownloadPage'
 
 function RootRedirect() {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" />
-  if (user.role === 'driver') return <Navigate to="/driver" />
-  if (user.is_admin) return <Navigate to="/admin" />
-  return <Navigate to="/engineer" />
+  return <Navigate to="/home" />
 }
 
 export default function App() {
@@ -34,6 +34,12 @@ export default function App() {
           } />
           <Route path="/admin/divisions/:id" element={
             <ProtectedRoute requireAdmin><DivisionDetail /></ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute><ProfilePage /></ProtectedRoute>
+          } />
+          <Route path="/home" element={
+            <ProtectedRoute><Home /></ProtectedRoute>
           } />
           <Route path="/download" element={
             <ProtectedRoute><DownloadPage /></ProtectedRoute>

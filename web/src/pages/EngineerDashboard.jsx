@@ -177,6 +177,21 @@ export default function EngineerDashboard() {
     setWs(null)
   }
 
+  const quitClient = async () => {
+    if (!clientRunning) return
+    try {
+      await fetch('http://localhost:7842/quit', { method: 'POST' })
+      showMsg('Client closing…', true)
+    } catch {
+      showMsg('Unable to close client', false)
+    }
+    if (ws) ws.close()
+    setConnected(null)
+    setConnectedDriver(null)
+    setWs(null)
+    setClientRunning(false)
+  }
+
   useEffect(() => {
     return () => { if (ws) ws.close() }
   }, [ws])
@@ -227,12 +242,40 @@ export default function EngineerDashboard() {
             {connected ? `Live — ${connected.username}` : 'Live'}
           </div>
         }
-        extra={
-          <>
+      />
+
+      <div className="max-w-3xl mx-auto px-6 py-8">
+
+        <div className="flex items-center justify-between mb-7">
+          <div>
+            <p className="lbl mb-1">Engineer Panel</p>
+            <h1 className="text-xl font-bold">Real-time drivers</h1>
+          </div>
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md"
+              style={{
+                background: clientRunning ? '#0d1f0d' : '#1e1e1e',
+                border: '1px solid ' + (clientRunning ? 'rgba(0,192,0,0.25)' : '#2a2a2a')
+              }}>
+              <div
+                className={'w-2 h-2 rounded-full shrink-0' + (clientRunning ? ' dot-online' : '')}
+                style={{ background: clientRunning ? '#00c000' : '#444' }}
+              />
+              <span className="text-[11px] uppercase tracking-wider" style={{ color: clientRunning ? '#00c000' : '#555' }}>
+                {clientRunning ? 'Client active' : 'Client offline'}
+              </span>
+            </div>
+
             {clientRunning ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: '#0d1f0d', border: '1px solid rgba(0,192,0,0.25)' }}>
-                <div className="w-1.5 h-1.5 rounded-full bg-[#00c000] dot-online" />
-                <span className="text-[11px] uppercase tracking-wider text-[#00c000]">Client active</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={quitClient}
+                  className="text-[11px] uppercase tracking-wider text-[#888] border border-[#555] rounded px-2.5 py-1 hover:bg-[#444]/10 transition-colors"
+                >Close Client</button>
+                <button
+                  onClick={() => navigate('/download')}
+                  className="text-[11px] uppercase tracking-wider text-[#f60300] border border-[#f60300]/30 rounded px-2.5 py-1 hover:bg-[#f60300]/10 transition-colors"
+                >Download</button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -262,34 +305,7 @@ export default function EngineerDashboard() {
                 >Download</button>
               </div>
             )}
-            {user?.is_admin && (
-              <button onClick={() => navigate('/admin')} className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors">Admin</button>
-            )}
-          </>
-        }
-      />
 
-      <div className="max-w-3xl mx-auto px-6 py-8">
-
-        <div className="flex items-center justify-between mb-7">
-          <div>
-            <p className="lbl mb-1">Engineer Panel</p>
-            <h1 className="text-xl font-bold">Real-time drivers</h1>
-          </div>
-          <div className="flex items-center gap-5">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md"
-              style={{
-                background: clientRunning ? '#0d1f0d' : '#1e1e1e',
-                border: '1px solid ' + (clientRunning ? 'rgba(0,192,0,0.25)' : '#2a2a2a')
-              }}>
-              <div
-                className={'w-2 h-2 rounded-full shrink-0' + (clientRunning ? ' dot-online' : '')}
-                style={{ background: clientRunning ? '#00c000' : '#444' }}
-              />
-              <span className="text-[11px] uppercase tracking-wider" style={{ color: clientRunning ? '#00c000' : '#555' }}>
-                {clientRunning ? 'Client active' : 'Client offline'}
-              </span>
-            </div>
             <div className="w-px h-8 bg-[#2e2e2e]" />
             <div className="text-right">
               <p className="text-xl font-bold font-mono text-[#00c000]">{onlineCount}</p>

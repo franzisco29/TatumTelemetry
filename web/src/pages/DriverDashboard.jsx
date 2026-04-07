@@ -29,16 +29,7 @@ export default function DriverDashboard() {
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
-      <Navbar
-        extra={
-          user?.is_admin && (
-            <button
-              onClick={() => navigate('/admin')}
-              className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
-            >Admin</button>
-          )
-        }
-      />
+      <Navbar />
 
       {/* Content */}
       <div className="max-w-xl mx-auto px-6 py-10">

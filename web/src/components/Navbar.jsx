@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import TatumLogo from './TatumLogo'
-import ProfileModal from './ProfileModal'
 
 /**
  * Navbar condivisa.
@@ -13,10 +12,10 @@ import ProfileModal from './ProfileModal'
  *  showDownload – mostra "Download Client" nel dropdown (default true)
  */
 export default function Navbar({ badge, extra, showDownload = true }) {
-  const { user, logout } = useAuth()
+  const { user, logout, connectedDriver } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showProfile,  setShowProfile]  = useState(false)
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -25,70 +24,136 @@ export default function Navbar({ badge, extra, showDownload = true }) {
     return () => document.removeEventListener('mousedown', fn)
   }, [])
 
+  const isActive = (path) => location.pathname === path
+  const driverDisabled = user?.role !== 'driver'
+
+  const navItems = [
+    { label: 'Home', path: '/home' },
+    { label: 'Engineer', path: '/engineer', disabled: user?.role !== 'engineer' && !user?.is_admin },
+    { label: 'Driver', path: '/driver', disabled: driverDisabled },
+  ]
+
+  if (user?.is_admin) {
+    navItems.push({ label: 'Admin', path: '/admin' })
+  }
+
   const handleLogout = () => { logout(); navigate('/login') }
 
   return (
-    <>
-      {showProfile && (
-        <ProfileModal onClose={(c) => { setShowProfile(false); if (c) window.location.reload() }} />
-      )}
-
-      <nav
-        className="flex items-center justify-between px-6 bg-[#181818] border-b border-[#2a2a2a]"
-        style={{ borderTop: '3px solid #f60300', minHeight: 56 }}
-      >
-        {/* Left: logo + badge opzionale */}
-        <div className="flex items-center gap-3">
-          <TatumLogo width={110} />
-          {badge}
-        </div>
-
-        {/* Right: extra + dropdown utente */}
-        <div className="flex items-center gap-5">
-          {extra}
-
-          <div className="relative" ref={menuRef}>
+    <nav className="bg-[#181818] border-b border-[#2a2a2a] sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
+        <div className="grid grid-cols-[120px_minmax(640px,1fr)_320px] items-center min-h-[70px] gap-6">
+          {/* Logo */}
+          <div className="w-[120px]">
             <button
-              onClick={() => setShowUserMenu(v => !v)}
-              className="flex items-center gap-2 text-[#999] hover:text-white transition-colors"
+              type="button"
+              onClick={() => navigate('/home')}
+              className="flex items-center transition-all duration-200 hover:opacity-80 hover:scale-[1.02] focus:outline-none"
             >
-              <span className="w-7 h-7 rounded bg-[#f60300] flex items-center justify-center text-white text-xs font-bold select-none">
-                {user?.username?.[0]?.toUpperCase()}
-              </span>
-              <span className="text-xs">{user?.username}</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <TatumLogo width={90} />
             </button>
+          </div>
 
-            {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-[#222] border border-[#333] rounded-md shadow-2xl z-50 py-1">
+          {/* Nav buttons */}
+          <div className="hidden md:flex justify-center">
+            <div className="grid grid-flow-col auto-cols-fr gap-3 max-w-[720px] w-full">
+              {navItems.map((item) => (
                 <button
-                  onClick={() => { setShowProfile(true); setShowUserMenu(false) }}
-                  className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
+                  key={item.label}
+                  type="button"
+                  onClick={() => !item.disabled && navigate(item.path)}
+                  disabled={item.disabled}
+                  className={`w-full rounded-md border px-4 py-2 text-[11px] text-center font-semibold uppercase tracking-[0.24em] transition-all duration-200 ${item.disabled ? 'border-[#2a2a2a] bg-[#111] text-[#606060] cursor-not-allowed' : isActive(item.path) ? 'border-[#f60300] bg-[#f60300]/10 text-[#fff]' : 'border-transparent bg-[#222] text-[#ccc] hover:border-[#f60300] hover:text-white hover:bg-[#1f1f1f]'}`}
                 >
-                  Edit profile
+                  {item.label}
                 </button>
-                {showDownload && (
+              ))}
+            </div>
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-3 w-[320px] justify-end">
+            {connectedDriver && (
+              <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#111] px-2 py-1 text-xs text-[#9ee3ff]">
+                <span>🚗</span>
+                <span>{connectedDriver}</span>
+              </span>
+            )}
+
+            {user?.offline && (
+              <span className="hidden sm:inline-flex items-center rounded-full bg-[#2a2a2a] px-2 py-1 text-xs text-[#a5a5a5]">
+                Offline
+              </span>
+            )}
+
+            <span className="hidden sm:inline-flex items-center rounded-full bg-[#111] px-2 py-1 text-xs text-[#ccc]">
+              {user?.is_admin ? 'Admin' : user?.role === 'driver' ? 'Driver' : 'Engineer'}
+            </span>
+
+            {extra}
+
+            {/* User menu */}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setShowUserMenu(v => !v)}
+                className="flex items-center gap-2 text-[#ccc] hover:text-white transition-colors"
+              >
+                <span className="w-8 h-8 rounded-full bg-[#f60300] flex items-center justify-center text-sm font-bold text-white">
+                  {user?.username?.[0]?.toUpperCase()}
+                </span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-[#222] border border-[#333] rounded-md shadow-2xl z-50 py-1">
+                  <div className="px-4 py-2 text-xs text-[#999] border-b border-[#333]">
+                    {user?.username}
+                  </div>
                   <button
-                    onClick={() => { navigate('/download'); setShowUserMenu(false) }}
+                    onClick={() => { navigate('/profile'); setShowUserMenu(false) }}
                     className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
                   >
-                    Download Client
+                    Profile
                   </button>
-                )}
-                <div className="border-t border-[#333] my-1" />
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#200000] transition-colors"
-                >
-                  Log out
-                </button>
-              </div>
-            )}
+                  {showDownload && (
+                    <button
+                      onClick={() => { navigate('/download'); setShowUserMenu(false) }}
+                      className="w-full text-left px-4 py-2.5 text-xs text-[#999] hover:text-white hover:bg-[#282828] transition-colors"
+                    >
+                      Download Client
+                    </button>
+                  )}
+                  <div className="border-t border-[#333] my-1" />
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2.5 text-xs text-[#f60300] hover:bg-[#200000] transition-colors"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </nav>
-    </>
+
+        {/* Mobile nav */}
+        <div className="md:hidden grid grid-cols-3 gap-2 pb-2">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => !item.disabled && navigate(item.path)}
+              disabled={item.disabled}
+              className={`w-full rounded-md border px-3 py-2 text-[11px] uppercase tracking-[0.24em] transition-all duration-200 ${item.disabled ? 'border-[#2a2a2a] bg-[#111] text-[#606060] cursor-not-allowed' : isActive(item.path) ? 'border-[#f60300] bg-[#f60300]/10 text-[#fff]' : 'border-transparent bg-[#222] text-[#ccc] hover:border-[#f60300] hover:text-white hover:bg-[#1f1f1f]'}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </nav>
   )
 }

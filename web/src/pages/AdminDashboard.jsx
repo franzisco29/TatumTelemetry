@@ -47,6 +47,11 @@ export default function AdminDashboard() {
     };
   }, [showBulkMenu]);
 
+  useEffect(() => {
+    fetchUsers();
+    fetchDivisions();
+  }, []);
+
   const fetchUsers     = async () => { const r = await API.get('/admin/users'); setUsers(r.data.users) }
   const fetchDivisions = async () => { const r = await API.get('/divisions');   setDivisions(r.data.divisions) }
 
@@ -135,14 +140,6 @@ export default function AdminDashboard() {
             Admin
           </span>
         }
-        extra={
-          user?.role === 'engineer' && (
-            <button
-              onClick={() => navigate('/engineer')}
-              className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
-            >Engineer Panel</button>
-          )
-        }
       />
 
       {/* Content */}
@@ -201,16 +198,18 @@ export default function AdminDashboard() {
               </select>
               <div className="flex-1" />
               <button onClick={() => setShowAssign(v => !v)} className={btnSec}>Assign division</button>
-              <div className="relative bulk-menu inline-flex items-stretch rounded-md overflow-hidden">
+              <div className="relative bulk-menu inline-flex items-stretch rounded-md overflow-visible border border-[#d90200]">
                 <button
                   onClick={() => setShowCreateUser(true)}
-                  className="px-4 py-2 flex items-center justify-center text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors"
+                  className="px-4 py-2 flex items-center justify-center text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors rounded-l-md"
+                  type="button"
                 >
                   + New user
                 </button>
                 <button
                   onClick={() => setShowBulkMenu(!showBulkMenu)}
-                  className="px-3 py-2 flex items-center justify-center text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors border-l border-white/10"
+                  className="px-3 py-2 flex items-center justify-center text-xs font-semibold uppercase tracking-wider bg-[#f60300] text-white hover:bg-[#d90200] transition-colors border-l border-white/10 rounded-r-md"
+                  type="button"
                   title="Bulk add"
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
