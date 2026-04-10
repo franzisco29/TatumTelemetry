@@ -6,6 +6,7 @@ import adminCover from '../assets/home_images/admin_dash.webp'
 import engineerCover from '../assets/home_images/engineer_dash.webp'
 import driverCover from '../assets/home_images/driver_dash.webp'
 import profileCover from '../assets/home_images/profile_dash.webp'
+import telemetryCover from '../assets/home_images/telemetry_dash.webp'
 
 export default function Home() {
   const { user } = useAuth()
@@ -13,6 +14,7 @@ export default function Home() {
 
   const cards = useMemo(() => {
     const driverDisabled = user?.is_admin || user?.role === 'engineer'
+    const isAdmin = !!user?.is_admin
 
     const items = [
       {
@@ -36,7 +38,22 @@ export default function Home() {
       },
     ]
 
-    if (user?.is_admin) {
+    if (isAdmin) {
+      items.splice(1, 0, {
+        title: 'Live Telemetry',
+        subtitle: 'Admin test mode only',
+        image: telemetryCover,
+        action: () => navigate('/live'),
+      })
+      items.splice(3, 0, {
+        title: 'Session Comparison',
+        subtitle: 'Admin test mode only',
+        image: telemetryCover,
+        action: () => navigate('/compare'),
+      })
+    }
+
+    if (isAdmin) {
       items.unshift({
         title: 'Admin Page',
         subtitle: 'Manage users, divisions and settings',
@@ -50,7 +67,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
-      <Navbar />
+      <Navbar showNavButtons={false} />
 
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-12 text-center">

@@ -7,11 +7,12 @@ import TatumLogo from './TatumLogo'
  * Navbar condivisa.
  *
  * Props:
- *  badge        – JSX opzionale mostrato a destra del logo (es. pill "Admin" o indicatore Live)
- *  extra        – JSX opzionale mostrato a destra, prima del menu utente (es. widget client, bottone Back)
- *  showDownload – mostra "Download Client" nel dropdown (default true)
+ *  badge         – JSX opzionale mostrato a destra del logo (es. pill "Admin" o indicatore Live)
+ *  extra         – JSX opzionale mostrato a destra, prima del menu utente (es. widget client, bottone Back)
+ *  showDownload  – mostra "Download Client" nel dropdown (default true)
+ *  showNavButtons – mostra la barra centrale di navigazione (default true)
  */
-export default function Navbar({ badge, extra, showDownload = true }) {
+export default function Navbar({ badge, extra, showDownload = true, showNavButtons = true }) {
   const { user, logout, connectedDriver } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -34,6 +35,8 @@ export default function Navbar({ badge, extra, showDownload = true }) {
   ]
 
   if (user?.is_admin) {
+    navItems.splice(1, 0, { label: 'Live', path: '/live', disabled: false })
+    navItems.splice(2, 0, { label: 'Compare', path: '/compare', disabled: false })
     navItems.push({ label: 'Admin', path: '/admin' })
   }
 
@@ -42,7 +45,7 @@ export default function Navbar({ badge, extra, showDownload = true }) {
   return (
     <nav className="bg-[#181818] border-b border-[#2a2a2a] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
-        <div className="grid grid-cols-[120px_minmax(640px,1fr)_320px] items-center min-h-[70px] gap-6">
+        <div className={`grid items-center min-h-[70px] gap-6 ${showNavButtons ? 'grid-cols-[120px_minmax(640px,1fr)_320px]' : 'grid-cols-[120px_1fr_320px]'}`}>
           {/* Logo */}
           <div className="w-[120px]">
             <button
@@ -55,20 +58,22 @@ export default function Navbar({ badge, extra, showDownload = true }) {
           </div>
 
           {/* Nav buttons */}
-          <div className="hidden md:flex justify-center">
-            <div className="grid grid-flow-col auto-cols-fr gap-3 max-w-[720px] w-full">
-              {navItems.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => !item.disabled && navigate(item.path)}
-                  disabled={item.disabled}
-                  className={`w-full rounded-md border px-4 py-2 text-[11px] text-center font-semibold uppercase tracking-[0.24em] transition-all duration-200 ${item.disabled ? 'border-[#2a2a2a] bg-[#111] text-[#606060] cursor-not-allowed' : isActive(item.path) ? 'border-[#f60300] bg-[#f60300]/10 text-[#fff]' : 'border-transparent bg-[#222] text-[#ccc] hover:border-[#f60300] hover:text-white hover:bg-[#1f1f1f]'}`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+          <div className={`${showNavButtons ? 'hidden md:flex justify-center' : 'hidden md:block'}`}>
+            {showNavButtons ? (
+              <div className="grid grid-flow-col auto-cols-fr gap-3 max-w-[720px] w-full">
+                {navItems.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => !item.disabled && navigate(item.path)}
+                    disabled={item.disabled}
+                    className={`w-full rounded-md border px-4 py-2 text-[11px] text-center font-semibold uppercase tracking-[0.24em] transition-all duration-200 ${item.disabled ? 'border-[#2a2a2a] bg-[#111] text-[#606060] cursor-not-allowed' : isActive(item.path) ? 'border-[#f60300] bg-[#f60300]/10 text-[#fff]' : 'border-transparent bg-[#222] text-[#ccc] hover:border-[#f60300] hover:text-white hover:bg-[#1f1f1f]'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {/* Right side */}
@@ -76,7 +81,7 @@ export default function Navbar({ badge, extra, showDownload = true }) {
             {connectedDriver && (
               <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-[#111] px-2 py-1 text-xs text-[#9ee3ff]">
                 <span>🚗</span>
-                <span>{connectedDriver}</span>
+                <span>{connectedDriver.username || connectedDriver}</span>
               </span>
             )}
 
@@ -140,19 +145,21 @@ export default function Navbar({ badge, extra, showDownload = true }) {
         </div>
 
         {/* Mobile nav */}
-        <div className="md:hidden grid grid-cols-3 gap-2 pb-2">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => !item.disabled && navigate(item.path)}
-              disabled={item.disabled}
-              className={`w-full rounded-md border px-3 py-2 text-[11px] uppercase tracking-[0.24em] transition-all duration-200 ${item.disabled ? 'border-[#2a2a2a] bg-[#111] text-[#606060] cursor-not-allowed' : isActive(item.path) ? 'border-[#f60300] bg-[#f60300]/10 text-[#fff]' : 'border-transparent bg-[#222] text-[#ccc] hover:border-[#f60300] hover:text-white hover:bg-[#1f1f1f]'}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {showNavButtons && (
+          <div className="md:hidden grid grid-cols-3 gap-2 pb-2">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => !item.disabled && navigate(item.path)}
+                disabled={item.disabled}
+                className={`w-full rounded-md border px-3 py-2 text-[11px] uppercase tracking-[0.24em] transition-all duration-200 ${item.disabled ? 'border-[#2a2a2a] bg-[#111] text-[#606060] cursor-not-allowed' : isActive(item.path) ? 'border-[#f60300] bg-[#f60300]/10 text-[#fff]' : 'border-transparent bg-[#222] text-[#ccc] hover:border-[#f60300] hover:text-white hover:bg-[#1f1f1f]'}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </nav>
   )

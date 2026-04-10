@@ -9,6 +9,8 @@ import DivisionDetail from './pages/DivisionDetail'
 import Home from './pages/Home'
 import ProfilePage from './pages/ProfilePage'
 import DownloadPage from './pages/DownloadPage'
+import LiveTelemetryDashboard from './pages/LiveTelemetryDashboard'
+import ComparisonDashboard from './pages/ComparisonDashboard'
 
 function RootRedirect() {
   const { user } = useAuth()
@@ -40,6 +42,12 @@ export default function App() {
           } />
           <Route path="/home" element={
             <ProtectedRoute><Home /></ProtectedRoute>
+          } />
+          <Route path="/live" element={
+            <ProtectedRoute requireAdmin><LiveTelemetryDashboard /></ProtectedRoute>
+          } />
+          <Route path="/compare" element={
+            <ProtectedRoute requireAdmin><ComparisonDashboard /></ProtectedRoute>
           } />
           <Route path="/download" element={
             <ProtectedRoute><DownloadPage /></ProtectedRoute>

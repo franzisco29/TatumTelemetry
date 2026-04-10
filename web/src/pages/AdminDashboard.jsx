@@ -146,7 +146,7 @@ export default function AdminDashboard() {
       <div className="max-w-5xl mx-auto px-6 py-8">
 
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-4">
           <p className="lbl mb-1">Admin Panel</p>
           <h1 className="text-xl font-bold">Users & Divisions</h1>
         </div>

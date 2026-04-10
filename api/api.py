@@ -1,12 +1,16 @@
 import asyncio
 import logging
+import os
 import time
 from fastapi import FastAPI, HTTPException, Depends, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from relay.auth import create_token, verify_token
+from relay.decoder import decode_telemetry_packet
+from recorder.recorder import read_session_packets, build_session_structure
 from database.database import get_db
 from database import crud
 from sqlalchemy.orm import Session
@@ -33,7 +37,10 @@ app.add_middleware(
 )
 bearer = HTTPBearer()
 relay_clients = {}
+relay_decoded_clients = {}
 relay_last_packet = {}
+relay_driver_names = {}
+relay_server = None
 
 # ── MODELS ─────────────────────────────────────────
 
@@ -76,6 +83,22 @@ class BulkUserEntry(BaseModel):
 class BulkCreateUsersRequest(BaseModel):
     users: list[BulkUserEntry]
 
+class CreateSessionRequest(BaseModel):
+    division_id: int
+    session_type: Optional[str] = None
+    circuit: Optional[str] = None
+
+class CloseSessionRequest(BaseModel):
+    session_type: Optional[str] = None
+    circuit: Optional[str] = None
+
+class StartRecordingRequest(BaseModel):
+    circuit: Optional[str] = None
+    session_type: Optional[str] = None
+
+class EndRecordingRequest(BaseModel):
+    pass
+
 # ── HELPERS ────────────────────────────────────────
 
 def get_current_user(
@@ -111,6 +134,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         dp = crud.get_port_by_user(db, user.id)
         if dp:
             port = dp.port
+            relay_driver_names[port] = user.username
     return {
         "token": token,
         "username": user.username,
@@ -378,6 +402,46 @@ async def websocket_endpoint(websocket: WebSocket, pilot_port: int):
         crud.close_connection(db, conn_log.id)
         db.close()
         logger.info(f"Ingegnere disconnesso da porta {pilot_port}")
+@app.websocket("/ws/decoded/{pilot_port}")
+async def websocket_decoded_endpoint(websocket: WebSocket, pilot_port: int):
+    if pilot_port not in relay_decoded_clients:
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
+    relay_decoded_clients[pilot_port].add(websocket)
+    logger.info(f"Ingegnere decoded connesso su porta {pilot_port}")
+
+    async def receive_loop():
+        try:
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            pass
+
+    async def driver_watchdog():
+        while relay_last_packet.get(pilot_port, 0) == 0:
+            await asyncio.sleep(1)
+        while True:
+            await asyncio.sleep(5)
+            last = relay_last_packet.get(pilot_port, 0)
+            if (time.time() - last) > DRIVER_TIMEOUT_SECONDS:
+                logger.info(f"Driver porta {pilot_port} offline, disconnetto ingegnere decoded")
+                try:
+                    await websocket.close(code=1001)
+                except Exception:
+                    pass
+                return
+
+    receiver = asyncio.ensure_future(receive_loop())
+    watchdog = asyncio.ensure_future(driver_watchdog())
+
+    try:
+        await asyncio.wait([receiver, watchdog], return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for task in (receiver, watchdog):
+            task.cancel()
+        relay_decoded_clients[pilot_port].discard(websocket)
+        logger.info(f"Ingegnere decoded disconnesso da porta {pilot_port}")
 # ── SESSIONS ───────────────────────────────────────
 
 @app.get("/sessions")
@@ -394,11 +458,340 @@ def get_sessions(user=Depends(get_current_user), db: Session = Depends(get_db)):
             "id": s.id,
             "driver_id": s.driver_id,
             "division_id": s.division_id,
+            "session_type": s.session_type,
+            "circuit": s.circuit,
             "started_at": s.started_at,
             "ended_at": s.ended_at,
             "file_path": s.file_path
         } for s in sessions
     ]}
+
+
+@app.post("/sessions")
+def create_session_endpoint(
+    req: CreateSessionRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Crea una nuova sessione per il driver attuale"""
+    if user.role != "driver":
+        raise HTTPException(status_code=403, detail="Solo driver possono creare sessioni")
+    
+    # Verifica che il driver appartenga alla divisione
+    division = crud.get_division_by_id(db, req.division_id)
+    if not division:
+        raise HTTPException(status_code=404, detail="Divisione non trovata")
+    
+    user_divs = {d.id for d in crud.get_user_divisions(db, user.id)}
+    if req.division_id not in user_divs:
+        raise HTTPException(status_code=403, detail="Non appartenete a questa divisione")
+    
+    session = crud.create_session(
+        db,
+        driver_id=user.id,
+        division_id=req.division_id,
+        session_type=req.session_type,
+        circuit=req.circuit
+    )
+    return {
+        "id": session.id,
+        "driver_id": session.driver_id,
+        "division_id": session.division_id,
+        "session_type": session.session_type,
+        "circuit": session.circuit,
+        "started_at": session.started_at,
+        "message": "Sessione creata"
+    }
+
+
+@app.put("/sessions/{session_id}")
+def update_session_endpoint(
+    session_id: int,
+    req: CloseSessionRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Aggiorna una sessione (es. per impostare il circuito al termine)"""
+    session_obj = db.query(crud.SessionModel).filter(crud.SessionModel.id == session_id).first()
+    if not session_obj:
+        raise HTTPException(status_code=404, detail="Sessione non trovata")
+    
+    if user.role == "driver" and session_obj.driver_id != user.id:
+        raise HTTPException(status_code=403, detail="Accesso negato")
+    
+    if user.role != "driver":
+        user_div_ids = {d.id for d in crud.get_user_divisions(db, user.id)}
+        if session_obj.division_id not in user_div_ids:
+            raise HTTPException(status_code=403, detail="Accesso negato")
+    
+    if req.session_type:
+        session_obj.session_type = req.session_type
+    if req.circuit:
+        session_obj.circuit = req.circuit
+    
+    if req.session_type or req.circuit:
+        db.commit()
+    
+    return {
+        "message": "Sessione aggiornata",
+        "session_type": session_obj.session_type,
+        "circuit": session_obj.circuit
+    }
+
+
+@app.post("/sessions/start-recording")
+def start_recording(
+    req: StartRecordingRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """La registrazione è automatica: questo endpoint è mantenuto solo per compatibilità."""
+    return {
+        "message": "Registrazione automatica attiva: la sessione parte e si divide da sola su cambio circuito/sessione",
+        "automatic": True,
+    }
+
+
+@app.post("/sessions/end-recording")
+def end_recording(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """La registrazione si chiude automaticamente quando la sessione finisce."""
+    return {
+        "message": "Registrazione automatica: non serve chiusura manuale",
+        "automatic": True,
+    }
+
+
+@app.get("/sessions/{session_id}/download")
+def download_session(session_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    session_obj = db.query(crud.SessionModel).filter(crud.SessionModel.id == session_id).first()
+    if not session_obj:
+        raise HTTPException(status_code=404, detail="Sessione non trovata")
+
+    if user.role == "driver" and session_obj.driver_id != user.id:
+        raise HTTPException(status_code=403, detail="Accesso negato")
+
+    if user.role != "driver":
+        user_div_ids = {d.id for d in crud.get_user_divisions(db, user.id)}
+        if session_obj.division_id not in user_div_ids:
+            raise HTTPException(status_code=403, detail="Accesso negato")
+
+    if not session_obj.file_path or not os.path.exists(session_obj.file_path):
+        raise HTTPException(status_code=404, detail="File sessione non trovato")
+
+    return FileResponse(
+        session_obj.file_path,
+        filename=os.path.basename(session_obj.file_path),
+        media_type="application/octet-stream"
+    )
+
+
+@app.get("/sessions/{session_id}/decoded-preview")
+def decoded_session_preview(
+    session_id: int,
+    max_packets: int = 200,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Preview best-effort: tenta decode sequenziale assumendo pacchetti di dimensione media costante."""
+    session_obj = db.query(crud.SessionModel).filter(crud.SessionModel.id == session_id).first()
+    if not session_obj:
+        raise HTTPException(status_code=404, detail="Sessione non trovata")
+
+    if user.role == "driver" and session_obj.driver_id != user.id:
+        raise HTTPException(status_code=403, detail="Accesso negato")
+
+    if user.role != "driver":
+        user_div_ids = {d.id for d in crud.get_user_divisions(db, user.id)}
+        if session_obj.division_id not in user_div_ids:
+            raise HTTPException(status_code=403, detail="Accesso negato")
+
+    if not session_obj.file_path or not os.path.exists(session_obj.file_path):
+        raise HTTPException(status_code=404, detail="File sessione non trovato")
+
+    source = read_session_packets(session_obj.file_path, max_packets=max_packets)
+    packets = []
+    for item in source["packets"]:
+        decoded = decode_telemetry_packet(item["payload"])
+        if item["timestamp"] is not None:
+            decoded["recorded_at"] = item["timestamp"]
+        packets.append(decoded)
+
+    return {
+        "session_id": session_obj.id,
+        "file_path": session_obj.file_path,
+        "storage_format": source["format"],
+        "assumed_packet_size": source["assumed_packet_size"],
+        "events": source.get("events", []),
+        "structure": build_session_structure(source.get("events", [])),
+        "packets": packets,
+    }
+
+
+@app.get("/sessions/{session_id}/structure")
+def session_structure(
+    session_id: int,
+    max_records: int = 2000,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    session_obj = _authorize_session_access(db, user, session_id)
+    source = read_session_packets(session_obj.file_path, max_packets=max_records)
+    structure = build_session_structure(source.get("events", []))
+
+    return {
+        "session_id": session_obj.id,
+        "file_path": session_obj.file_path,
+        "storage_format": source["format"],
+        "events_count": len(source.get("events", [])),
+        "structure": structure,
+    }
+
+
+def _authorize_session_access(db: Session, user, session_id: int):
+    session_obj = db.query(crud.SessionModel).filter(crud.SessionModel.id == session_id).first()
+    if not session_obj:
+        raise HTTPException(status_code=404, detail=f"Sessione {session_id} non trovata")
+
+    if user.role == "driver" and session_obj.driver_id != user.id:
+        raise HTTPException(status_code=403, detail="Accesso negato")
+
+    if user.role != "driver":
+        user_div_ids = {d.id for d in crud.get_user_divisions(db, user.id)}
+        if session_obj.division_id not in user_div_ids:
+            raise HTTPException(status_code=403, detail="Accesso negato")
+
+    if not session_obj.file_path or not os.path.exists(session_obj.file_path):
+        raise HTTPException(status_code=404, detail="File sessione non trovato")
+
+    return session_obj
+
+
+def _extract_series(decoded_packets: list[dict], channel: str) -> list[float | None]:
+    out = []
+    for packet in decoded_packets:
+        value = packet.get("channels", {}).get(channel)
+        if isinstance(value, bool):
+            out.append(1.0 if value else 0.0)
+        elif isinstance(value, (int, float)):
+            out.append(float(value))
+        else:
+            out.append(None)
+    return out
+
+
+def _sample_series(series: list[float | None], source_pos: float) -> float | None:
+    if not series:
+        return None
+    if len(series) == 1:
+        return series[0]
+
+    left_i = int(source_pos)
+    right_i = min(left_i + 1, len(series) - 1)
+    frac = source_pos - left_i
+
+    left_v = series[left_i]
+    right_v = series[right_i]
+
+    if left_v is None and right_v is None:
+        return None
+    if left_v is None:
+        return right_v
+    if right_v is None:
+        return left_v
+
+    return left_v + (right_v - left_v) * frac
+
+
+def _resample_series(series: list[float | None], target_points: int) -> list[float | None]:
+    if target_points <= 0:
+        return []
+    if not series:
+        return [None] * target_points
+    if len(series) == target_points:
+        return series
+    if len(series) == 1:
+        return [series[0]] * target_points
+
+    out = []
+    max_src = len(series) - 1
+    max_dst = target_points - 1
+    for i in range(target_points):
+        pos = (i / max_dst) * max_src if max_dst > 0 else 0
+        out.append(_sample_series(series, pos))
+    return out
+
+
+@app.get("/sessions/compare")
+def compare_sessions(
+    left_id: int,
+    right_id: int,
+    max_packets: int = 240,
+    normalize: bool = False,
+    normalized_points: int = 180,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    left_session = _authorize_session_access(db, user, left_id)
+    right_session = _authorize_session_access(db, user, right_id)
+
+    left_source = read_session_packets(left_session.file_path, max_packets=max_packets)
+    right_source = read_session_packets(right_session.file_path, max_packets=max_packets)
+
+    left_packets = [decode_telemetry_packet(item["payload"]) for item in left_source["packets"]]
+    right_packets = [decode_telemetry_packet(item["payload"]) for item in right_source["packets"]]
+
+    channels = ["speed", "engine_rpm", "throttle", "brake", "gear"]
+
+    left_series = {channel: _extract_series(left_packets, channel) for channel in channels}
+    right_series = {channel: _extract_series(right_packets, channel) for channel in channels}
+
+    aligned_len = min(len(left_packets), len(right_packets))
+    if normalize:
+        points = max(10, min(2000, normalized_points))
+        left_series = {channel: _resample_series(left_series[channel], points) for channel in channels}
+        right_series = {channel: _resample_series(right_series[channel], points) for channel in channels}
+        aligned_len = points
+
+    labels = list(range(aligned_len))
+
+    def _avg_abs_delta(channel: str):
+        deltas = []
+        for i in range(aligned_len):
+            left_val = left_series[channel][i]
+            right_val = right_series[channel][i]
+            if left_val is None or right_val is None:
+                continue
+            deltas.append(abs(left_val - right_val))
+        if not deltas:
+            return None
+        return round(sum(deltas) / len(deltas), 3)
+
+    return {
+        "left": {
+            "session_id": left_session.id,
+            "storage_format": left_source["format"],
+            "sample_count": len(left_packets),
+            "series": left_series,
+        },
+        "right": {
+            "session_id": right_session.id,
+            "storage_format": right_source["format"],
+            "sample_count": len(right_packets),
+            "series": right_series,
+        },
+        "overlay": {
+            "aligned_length": aligned_len,
+            "normalized": normalize,
+            "avg_abs_delta_speed": _avg_abs_delta("speed"),
+            "avg_abs_delta_rpm": _avg_abs_delta("engine_rpm"),
+            "avg_abs_delta_throttle": _avg_abs_delta("throttle"),
+            "avg_abs_delta_brake": _avg_abs_delta("brake"),
+        },
+        "labels": labels,
+    }
 
 
 class UpdateProfileRequest(BaseModel):
@@ -515,8 +908,12 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
     return {"message": "Password aggiornata"}
 
 
-def create_app(clients: dict, last_packet: dict):
-    global relay_clients, relay_last_packet
+def create_app(clients: dict, decoded_clients: dict, last_packet: dict, relay_srv=None, driver_names=None):
+    global relay_clients, relay_decoded_clients, relay_last_packet, relay_server, relay_driver_names
     relay_clients = clients
+    relay_decoded_clients = decoded_clients
     relay_last_packet = last_packet
+    relay_server = relay_srv
+    if driver_names is not None:
+        relay_driver_names = driver_names
     return app

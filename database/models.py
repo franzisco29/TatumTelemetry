@@ -77,6 +77,8 @@ class Session(Base):
     id          = Column(Integer, primary_key=True)
     driver_id   = Column(Integer, ForeignKey("users.id"))
     division_id = Column(Integer, ForeignKey("divisions.id"))
+    session_type = Column(String(50), nullable=True)  # Qualifica, Gara, Pratica, ecc.
+    circuit     = Column(String(100), nullable=True)  # Nome del circuito
     started_at  = Column(DateTime, default=datetime.utcnow)
     ended_at    = Column(DateTime, nullable=True)
     file_path   = Column(Text, nullable=True)

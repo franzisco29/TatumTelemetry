@@ -66,16 +66,16 @@ export default function Login() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <TatumLogo width={190} />
+        <div className="flex justify-center">
+          <TatumLogo width={170} />
         </div>
 
         {/* Red separator */}
-        <div className="h-[2px] bg-[#f60300] mb-8 rounded-full" />
+        <div className="h-[2px] bg-[#f60300] mb-6 rounded-full" />
 
         {/* Card */}
         <div className="bg-[#222] border border-[#333] rounded-md p-7">
-          <p className="lbl mb-6">Telemetry system access</p>
+          <p className="lbl text-center mb-4">Telemetry system access</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -130,9 +130,10 @@ export default function Login() {
         {showReset && (
           <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 px-4">
             <div className="bg-[#222] border border-[#333] rounded-md w-full max-w-sm p-7">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-bold text-base">Change password</h2>
-                <button onClick={() => setShowReset(false)} className="text-[#555] hover:text-white text-lg leading-none">✕</button>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-6">
+                <span />
+                <h2 className="font-bold text-base text-center">Change password</h2>
+                <button onClick={() => setShowReset(false)} className="justify-self-end text-[#555] hover:text-white text-lg leading-none">✕</button>
               </div>
               <form onSubmit={handleReset} className="space-y-4">
                 <div>

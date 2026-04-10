@@ -118,10 +118,12 @@ def remove_port(db: Session, user_id: int):
 
 # ── SESSIONS ───────────────────────────────────────
 
-def create_session(db: Session, driver_id: int, division_id: int, file_path: str = None):
+def create_session(db: Session, driver_id: int, division_id: int, session_type: str = None, circuit: str = None, file_path: str = None):
     session = SessionModel(
         driver_id=driver_id,
         division_id=division_id,
+        session_type=session_type,
+        circuit=circuit,
         file_path=file_path
     )
     db.add(session)
@@ -129,12 +131,16 @@ def create_session(db: Session, driver_id: int, division_id: int, file_path: str
     db.refresh(session)
     return session
 
-def close_session(db: Session, session_id: int, file_path: str = None):
+def close_session(db: Session, session_id: int, file_path: str = None, session_type: str = None, circuit: str = None):
     session = db.query(SessionModel).filter(SessionModel.id == session_id).first()
     if session:
         session.ended_at = datetime.utcnow()
         if file_path:
             session.file_path = file_path
+        if session_type:
+            session.session_type = session_type
+        if circuit:
+            session.circuit = circuit
         db.commit()
 
 def get_sessions_by_driver(db: Session, driver_id: int):

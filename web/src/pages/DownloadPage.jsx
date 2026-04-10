@@ -1,24 +1,72 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
+import API from '../api'
 
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
 const GITHUB_REPO  = import.meta.env.VITE_GITHUB_REPO
 
 export default function DownloadPage() {
   const { user, connectedDriver } = useAuth()
-  const navigate = useNavigate()
   const [release, setRelease] = useState(null)
   const [loading, setLoading] = useState(true)
   const [clientRunning, setClientRunning] = useState(false)
+  const [sessions, setSessions] = useState([])
+  const [sessionsLoading, setSessionsLoading] = useState(true)
+  const [selectedSessionId, setSelectedSessionId] = useState(null)
+  const [structureLoading, setStructureLoading] = useState(false)
+  const [sessionStructure, setSessionStructure] = useState(null)
 
   useEffect(() => {
     fetchRelease()
     checkClient()
+    fetchSessions()
     const iv = setInterval(checkClient, 30000)
     return () => clearInterval(iv)
   }, [])
+
+  const fetchSessions = async () => {
+    try {
+      setSessionsLoading(true)
+      const res = await API.get('/sessions')
+      const list = (res.data?.sessions || []).sort((a, b) => {
+        const aTs = new Date(a.started_at || 0).getTime()
+        const bTs = new Date(b.started_at || 0).getTime()
+        return bTs - aTs
+      })
+      setSessions(list)
+      if (list.length > 0) {
+        setSelectedSessionId(list[0].id)
+      }
+    } catch (err) {
+      console.error(err)
+      setSessions([])
+    } finally {
+      setSessionsLoading(false)
+    }
+  }
+
+  const fetchSessionStructure = async (sessionId) => {
+    if (!sessionId) return
+    try {
+      setStructureLoading(true)
+      const res = await API.get(`/sessions/${sessionId}/structure?max_records=4000`)
+      setSessionStructure(res.data)
+    } catch (err) {
+      console.error(err)
+      setSessionStructure(null)
+    } finally {
+      setStructureLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedSessionId) {
+      setSessionStructure(null)
+      return
+    }
+    fetchSessionStructure(selectedSessionId)
+  }, [selectedSessionId])
 
   const fetchRelease = async () => {
     try {
@@ -77,6 +125,22 @@ export default function DownloadPage() {
   const isInstaller = (name) =>
     name.includes('Setup') || name.includes('setup') || name.includes('installer')
 
+  const fmtDate = (value) => {
+    if (!value) return 'N/A'
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return 'N/A'
+    return d.toLocaleString('it-IT')
+  }
+
+  const fmtLapTime = (ms) => {
+    if (!ms && ms !== 0) return 'N/A'
+    const total = Math.max(0, Number(ms))
+    const minutes = Math.floor(total / 60000)
+    const seconds = Math.floor((total % 60000) / 1000)
+    const millis = Math.floor(total % 1000)
+    return `${minutes}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`
+  }
+
   return (
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
@@ -95,13 +159,6 @@ export default function DownloadPage() {
             {connectedDriver ? `Live — ${connectedDriver.username}` : 'Live'}
           </div>
         }
-        extra={
-          <button
-            onClick={() => navigate(-1)}
-            className="text-[11px] uppercase tracking-wider text-[#666] hover:text-white transition-colors"
-          >← Back</button>
-        }
-        showDownload={false}
       />
 
       <div className="max-w-2xl mx-auto px-6 py-12">
@@ -233,6 +290,72 @@ export default function DownloadPage() {
                 </li>
               ))}
             </ol>
+          </div>
+
+          <div className="mt-6 bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-5 py-4">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <p className="lbl">Session Logs (Outings + Laps)</p>
+              <button
+                onClick={fetchSessions}
+                className="text-[11px] uppercase tracking-wider text-[#888] hover:text-white transition-colors"
+              >Refresh</button>
+            </div>
+
+            {sessionsLoading ? (
+              <p className="text-xs text-[#666]">Caricamento sessioni...</p>
+            ) : sessions.length === 0 ? (
+              <p className="text-xs text-[#666]">Nessuna sessione disponibile.</p>
+            ) : (
+              <div className="space-y-3">
+                <select
+                  className="w-full rounded-md border border-[#333] bg-[#161616] px-3 py-2 text-xs text-[#ddd]"
+                  value={selectedSessionId || ''}
+                  onChange={(e) => setSelectedSessionId(Number(e.target.value))}
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      #{s.id} - {s.circuit || 'Unknown Circuit'} - {s.session_type || 'Unknown Session'} - {fmtDate(s.started_at)}
+                    </option>
+                  ))}
+                </select>
+
+                {structureLoading ? (
+                  <p className="text-xs text-[#666]">Lettura struttura outing/giri...</p>
+                ) : !sessionStructure?.structure ? (
+                  <p className="text-xs text-[#666]">Impossibile leggere la struttura della sessione.</p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="rounded-md border border-[#2a2a2a] bg-[#171717] px-3 py-3 text-xs text-[#999] grid gap-1">
+                      <p>Driver: <span className="text-[#ddd]">{sessionStructure.structure.session?.driver_name || 'N/A'}</span></p>
+                      <p>Circuito: <span className="text-[#ddd]">{sessionStructure.structure.session?.circuit || 'N/A'}</span></p>
+                      <p>Tipo sessione: <span className="text-[#ddd]">{sessionStructure.structure.session?.session_type || 'N/A'}</span></p>
+                      <p>Outings: <span className="text-[#ddd]">{sessionStructure.structure.session?.outings_count ?? 0}</span></p>
+                      <p>Giri: <span className="text-[#ddd]">{sessionStructure.structure.session?.laps_count ?? 0}</span></p>
+                    </div>
+
+                    {(sessionStructure.structure.outings || []).map((outing) => (
+                      <div key={outing.outing_index} className="rounded-md border border-[#2a2a2a] bg-[#171717] px-3 py-3">
+                        <p className="text-xs font-semibold text-[#ddd] mb-2">
+                          Outing {outing.outing_index} · {fmtDate(outing.started_at)} → {fmtDate(outing.ended_at)}
+                        </p>
+                        {(!outing.laps || outing.laps.length === 0) ? (
+                          <p className="text-xs text-[#666]">Nessun giro registrato in questo outing.</p>
+                        ) : (
+                          <div className="space-y-1">
+                            {outing.laps.map((lap, idx) => (
+                              <div key={`${outing.outing_index}-${lap.lap_number || idx}`} className="text-xs text-[#999] border border-[#242424] rounded px-2 py-1">
+                                Lap {lap.lap_number ?? 'N/A'} · {lap.kind || 'lap'} · Tempo: <span className="text-[#ddd]">{fmtLapTime(lap.last_lap_time_ms)}</span>
+                                {lap.current_lap_invalid ? <span className="text-[#f5a623]"> · Invalid</span> : <span className="text-[#00c000]"> · Valid</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           </>
         ) : (
