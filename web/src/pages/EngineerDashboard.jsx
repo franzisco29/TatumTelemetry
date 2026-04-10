@@ -137,7 +137,7 @@ export default function EngineerDashboard() {
     if (ws) ws.close()
     setConnecting(true)
 
-    // Prova a comandare il client locale
+    // Try controlling the local client
     try {
       const tokenRes = await API.get('/auth/client-token')
       const res = await fetch('http://localhost:7842/connect', {
@@ -156,7 +156,7 @@ export default function EngineerDashboard() {
       setConnecting(false)
       return
     } catch {
-      // Client non disponibile — usa WebSocket browser
+      // Client not available — use browser WebSocket
     }
 
     // Fallback WebSocket browser

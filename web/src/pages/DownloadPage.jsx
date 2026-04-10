@@ -129,7 +129,7 @@ export default function DownloadPage() {
     if (!value) return 'N/A'
     const d = new Date(value)
     if (Number.isNaN(d.getTime())) return 'N/A'
-    return d.toLocaleString('it-IT')
+    return d.toLocaleString('en-GB')
   }
 
   const fmtLapTime = (ms) => {
@@ -270,7 +270,7 @@ export default function DownloadPage() {
             )}
           </div>
 
-          {/* Istruzioni installazione */}
+          {/* Installation instructions */}
           <div className="mt-6 bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-5 py-4">
             <p className="lbl mb-3">How to install</p>
             <ol className="space-y-2.5">
@@ -302,9 +302,9 @@ export default function DownloadPage() {
             </div>
 
             {sessionsLoading ? (
-              <p className="text-xs text-[#666]">Caricamento sessioni...</p>
+              <p className="text-xs text-[#666]">Loading sessions...</p>
             ) : sessions.length === 0 ? (
-              <p className="text-xs text-[#666]">Nessuna sessione disponibile.</p>
+              <p className="text-xs text-[#666]">No sessions available.</p>
             ) : (
               <div className="space-y-3">
                 <select
@@ -320,17 +320,17 @@ export default function DownloadPage() {
                 </select>
 
                 {structureLoading ? (
-                  <p className="text-xs text-[#666]">Lettura struttura outing/giri...</p>
+                  <p className="text-xs text-[#666]">Reading outing/lap structure...</p>
                 ) : !sessionStructure?.structure ? (
-                  <p className="text-xs text-[#666]">Impossibile leggere la struttura della sessione.</p>
+                  <p className="text-xs text-[#666]">Unable to read the session structure.</p>
                 ) : (
                   <div className="space-y-3">
                     <div className="rounded-md border border-[#2a2a2a] bg-[#171717] px-3 py-3 text-xs text-[#999] grid gap-1">
                       <p>Driver: <span className="text-[#ddd]">{sessionStructure.structure.session?.driver_name || 'N/A'}</span></p>
-                      <p>Circuito: <span className="text-[#ddd]">{sessionStructure.structure.session?.circuit || 'N/A'}</span></p>
-                      <p>Tipo sessione: <span className="text-[#ddd]">{sessionStructure.structure.session?.session_type || 'N/A'}</span></p>
+                      <p>Circuit: <span className="text-[#ddd]">{sessionStructure.structure.session?.circuit || 'N/A'}</span></p>
+                      <p>Session type: <span className="text-[#ddd]">{sessionStructure.structure.session?.session_type || 'N/A'}</span></p>
                       <p>Outings: <span className="text-[#ddd]">{sessionStructure.structure.session?.outings_count ?? 0}</span></p>
-                      <p>Giri: <span className="text-[#ddd]">{sessionStructure.structure.session?.laps_count ?? 0}</span></p>
+                      <p>Laps: <span className="text-[#ddd]">{sessionStructure.structure.session?.laps_count ?? 0}</span></p>
                     </div>
 
                     {(sessionStructure.structure.outings || []).map((outing) => (
@@ -339,7 +339,7 @@ export default function DownloadPage() {
                           Outing {outing.outing_index} · {fmtDate(outing.started_at)} → {fmtDate(outing.ended_at)}
                         </p>
                         {(!outing.laps || outing.laps.length === 0) ? (
-                          <p className="text-xs text-[#666]">Nessun giro registrato in questo outing.</p>
+                          <p className="text-xs text-[#666]">No laps recorded in this outing.</p>
                         ) : (
                           <div className="space-y-1">
                             {outing.laps.map((lap, idx) => (

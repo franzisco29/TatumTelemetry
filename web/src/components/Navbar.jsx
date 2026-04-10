@@ -4,13 +4,13 @@ import { useAuth } from '../context/AuthContext'
 import TatumLogo from './TatumLogo'
 
 /**
- * Navbar condivisa.
+ * Shared navbar.
  *
  * Props:
- *  badge         – JSX opzionale mostrato a destra del logo (es. pill "Admin" o indicatore Live)
- *  extra         – JSX opzionale mostrato a destra, prima del menu utente (es. widget client, bottone Back)
- *  showDownload  – mostra "Download Client" nel dropdown (default true)
- *  showNavButtons – mostra la barra centrale di navigazione (default true)
+ *  badge          - optional JSX shown to the right of the logo (e.g. "Admin" pill or Live indicator)
+ *  extra          - optional JSX shown on the right, before the user menu (e.g. client widget, Back button)
+ *  showDownload   - show "Download Client" in the dropdown (default true)
+ *  showNavButtons - show the central navigation bar (default true)
  */
 export default function Navbar({ badge, extra, showDownload = true, showNavButtons = true }) {
   const { user, logout, connectedDriver } = useAuth()

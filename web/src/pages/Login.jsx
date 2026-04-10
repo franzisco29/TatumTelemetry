@@ -17,7 +17,7 @@ export default function Login() {
   const { login, user, loading: authLoading } = useAuth()
   const navigate   = useNavigate()
 
-  // Se l'utente è già autenticato, reindirizza subito alla home
+  // If the user is already authenticated, redirect to home immediately
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/', { replace: true })
@@ -30,7 +30,7 @@ export default function Login() {
     setLoading(true)
     try {
       await login(username, password)
-      // replace: true evita che la pagina login resti nello stack history
+      // replace: true prevents the login page from staying in the history stack
       navigate('/', { replace: true })
     } catch (err) {
       if (err.response?.status === 403) {

@@ -118,7 +118,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#1c1c1c] text-white">
 
       {editUser       && <EditUserModal user={editUser} divisions={divisions} onClose={(c) => { setEditUser(null); if (c) fetchUsers() }} />}
-      {showBulkUpload && <BulkUploadModal divisions={divisions} onClose={(reload) => { setShowBulkUpload(false); if (reload) { fetchUsers(); notify('Utenti importati con successo!') } }} onSuccess={fetchUsers} />}
+      {showBulkUpload && <BulkUploadModal divisions={divisions} onClose={(reload) => { setShowBulkUpload(false); if (reload) { fetchUsers(); notify('Users imported successfully!') } }} onSuccess={fetchUsers} />}
 
       {/* Delete confirm modal */}
       {confirmDelete && (
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* ── TAB UTENTI ──────────────────────────────── */}
+        {/* ── USERS TAB ──────────────────────────────── */}
         {tab === 'users' && (
           <div>
             {/* Actions row */}
@@ -388,11 +388,11 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── TAB DIVISIONI ───────────────────────────── */}
+        {/* ── DIVISIONS TAB ───────────────────────────── */}
         {tab === 'divisions' && (
           <div>
             {selectedDivision ? (
-              // ── Vista dettaglio divisione ──────────────
+              // ── Division detail view ──────────────
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -523,7 +523,7 @@ export default function AdminDashboard() {
                 })()}
               </div>
             ) : (
-              // ── Lista divisioni ────────────────────────
+              // ── Divisions list ────────────────────────
               <>
             <div className="flex justify-between items-center mb-5">
               <p className="lbl">Registered divisions</p>

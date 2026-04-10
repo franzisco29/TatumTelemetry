@@ -18,7 +18,7 @@ function formatDate(value) {
   if (!value) return 'N/A'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'N/A'
-  return date.toLocaleString('it-IT')
+  return date.toLocaleString('en-GB')
 }
 
 function getDurationSeconds(session) {
@@ -62,7 +62,7 @@ export default function ComparisonDashboard() {
         if (list.length >= 1) setLeftId(String(list[0].id))
         if (list.length >= 2) setRightId(String(list[1].id))
       } catch {
-        setError('Impossibile caricare le sessioni')
+        setError('Unable to load sessions')
       } finally {
         setLoading(false)
       }
@@ -247,19 +247,19 @@ export default function ComparisonDashboard() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Session Comparison</h1>
           <p className="mt-2 text-sm text-[#aaa]">
-            Confronto rapido tra due registrazioni: questa base prepara la fase successiva con overlay canali.
+            Quick comparison between two recordings: this baseline prepares the next step with channel overlays.
           </p>
         </div>
 
         <section className="grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-[#2b2b2b] bg-[#181818] p-4">
-            <div className="text-xs uppercase tracking-[0.18em] text-[#777]">Sessione A</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[#777]">Session A</div>
             <select
               className="mt-3 w-full rounded-md border border-[#2e2e2e] bg-[#111] px-3 py-2 text-sm"
               value={leftId}
               onChange={(e) => setLeftId(e.target.value)}
             >
-              <option value="">Seleziona sessione</option>
+              <option value="">Select session</option>
               {sessions.map((s) => (
                 <option key={s.id} value={String(s.id)}>
                   #{s.id} - Driver {s.driver_id} - {formatDate(s.started_at)}
@@ -269,13 +269,13 @@ export default function ComparisonDashboard() {
           </div>
 
           <div className="rounded-xl border border-[#2b2b2b] bg-[#181818] p-4">
-            <div className="text-xs uppercase tracking-[0.18em] text-[#777]">Sessione B</div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[#777]">Session B</div>
             <select
               className="mt-3 w-full rounded-md border border-[#2e2e2e] bg-[#111] px-3 py-2 text-sm"
               value={rightId}
               onChange={(e) => setRightId(e.target.value)}
             >
-              <option value="">Seleziona sessione</option>
+              <option value="">Select session</option>
               {sessions.map((s) => (
                 <option key={s.id} value={String(s.id)}>
                   #{s.id} - Driver {s.driver_id} - {formatDate(s.started_at)}
@@ -289,10 +289,10 @@ export default function ComparisonDashboard() {
           {[leftSession, rightSession].map((session, idx) => (
             <div key={idx} className="rounded-xl border border-[#2b2b2b] bg-[#181818] p-4">
               <div className="mb-3 text-xs uppercase tracking-[0.18em] text-[#777]">
-                {idx === 0 ? 'Dettaglio Sessione A' : 'Dettaglio Sessione B'}
+                {idx === 0 ? 'Session A Details' : 'Session B Details'}
               </div>
               {!session ? (
-                <div className="text-sm text-[#999]">Nessuna sessione selezionata.</div>
+                <div className="text-sm text-[#999]">No session selected.</div>
               ) : (
                 <div className="grid gap-2 text-sm text-[#ddd]">
                   <div>ID: {session.id}</div>
@@ -300,7 +300,7 @@ export default function ComparisonDashboard() {
                   <div>Division ID: {session.division_id}</div>
                   <div>Start: {formatDate(session.started_at)}</div>
                   <div>End: {formatDate(session.ended_at)}</div>
-                  <div>Durata: {formatDuration(getDurationSeconds(session))}</div>
+                  <div>Duration: {formatDuration(getDurationSeconds(session))}</div>
                   <div className="truncate">File: {session.file_path || 'N/A'}</div>
                 </div>
               )}
@@ -309,7 +309,7 @@ export default function ComparisonDashboard() {
         </section>
 
         <section className="mt-3 rounded-xl border border-[#2b2b2b] bg-[#181818] p-4">
-          <div className="mb-3 text-xs uppercase tracking-[0.18em] text-[#777]">Delta rapido</div>
+          <div className="mb-3 text-xs uppercase tracking-[0.18em] text-[#777]">Quick Delta</div>
           <div className="mb-3 flex items-center gap-2 text-sm text-[#ddd]">
             <input
               id="normalizeTime"
@@ -321,16 +321,16 @@ export default function ComparisonDashboard() {
             <label htmlFor="normalizeTime">Normalize time (resampling)</label>
           </div>
           <div className="grid gap-2 text-sm text-[#ddd] sm:grid-cols-2">
-            <div>Delta durata: {formatDuration(leftDuration !== null && rightDuration !== null ? Math.abs(leftDuration - rightDuration) : null)}</div>
-            <div>Formato file: {leftPreview?.storage_format || 'N/A'} vs {rightPreview?.storage_format || 'N/A'}</div>
-            <div>Pack decodificati: {leftPreview?.packets?.length || 0} vs {rightPreview?.packets?.length || 0}</div>
-            <div>Confronto normalizzato: {compareData?.overlay?.normalized ? 'ON' : 'OFF'}</div>
+            <div>Duration delta: {formatDuration(leftDuration !== null && rightDuration !== null ? Math.abs(leftDuration - rightDuration) : null)}</div>
+            <div>File format: {leftPreview?.storage_format || 'N/A'} vs {rightPreview?.storage_format || 'N/A'}</div>
+            <div>Decoded packets: {leftPreview?.packets?.length || 0} vs {rightPreview?.packets?.length || 0}</div>
+            <div>Normalized comparison: {compareData?.overlay?.normalized ? 'ON' : 'OFF'}</div>
             <div>Avg speed: {avgSpeed(leftPreview) ?? 'N/A'} vs {avgSpeed(rightPreview) ?? 'N/A'} km/h</div>
             <div>Max RPM: {maxRpm(leftPreview) ?? 'N/A'} vs {maxRpm(rightPreview) ?? 'N/A'}</div>
-            <div>Delta speed medio: {compareData?.overlay?.avg_abs_delta_speed ?? 'N/A'}</div>
-            <div>Delta rpm medio: {compareData?.overlay?.avg_abs_delta_rpm ?? 'N/A'}</div>
-            <div>Delta throttle medio: {compareData?.overlay?.avg_abs_delta_throttle ?? 'N/A'}</div>
-            <div>Delta brake medio: {compareData?.overlay?.avg_abs_delta_brake ?? 'N/A'}</div>
+            <div>Average speed delta: {compareData?.overlay?.avg_abs_delta_speed ?? 'N/A'}</div>
+            <div>Average rpm delta: {compareData?.overlay?.avg_abs_delta_rpm ?? 'N/A'}</div>
+            <div>Average throttle delta: {compareData?.overlay?.avg_abs_delta_throttle ?? 'N/A'}</div>
+            <div>Average brake delta: {compareData?.overlay?.avg_abs_delta_brake ?? 'N/A'}</div>
           </div>
         </section>
 
@@ -353,13 +353,13 @@ export default function ComparisonDashboard() {
 
         {previewLoading && (
           <div className="mt-3 rounded-xl border border-[#2b2b2b] bg-[#181818] p-4 text-sm text-[#aaa]">
-            Decodifica preview in corso...
+            Decoding preview in progress...
           </div>
         )}
 
         {loading && (
           <div className="mt-4 rounded-xl border border-[#2b2b2b] bg-[#181818] p-4 text-sm text-[#aaa]">
-            Caricamento sessioni...
+            Loading sessions...
           </div>
         )}
         {error && (

@@ -17,15 +17,15 @@ const btnSec   = 'px-4 py-2 rounded-md text-xs font-medium bg-[#282828] text-[#9
 function validateRow(row, idx) {
   const errors = []
   if (!row.username || String(row.username).trim() === '')
-    errors.push('Username mancante')
+    errors.push('Missing username')
   if (!row.password || String(row.password).trim() === '')
-    errors.push('Password mancante')
+    errors.push('Missing password')
   if (!row.role || !VALID_ROLES.includes(String(row.role).toLowerCase()))
-    errors.push(`Role non valido (usa: ${VALID_ROLES.join(', ')})`)
+    errors.push(`Invalid role (use: ${VALID_ROLES.join(', ')})`)
   if (row.platform && !VALID_PLATFORMS.includes(row.platform))
-    errors.push(`Platform non valida (usa: ${VALID_PLATFORMS.join(', ')})`)
+    errors.push(`Invalid platform (use: ${VALID_PLATFORMS.join(', ')})`)
   if (row.team_category && !VALID_CATS.includes(row.team_category))
-    errors.push(`Team category non valida (usa: ${VALID_CATS.join(', ')})`)
+    errors.push(`Invalid team category (use: ${VALID_CATS.join(', ')})`)
   return errors
 }
 
@@ -59,11 +59,11 @@ function downloadTemplate() {
 
 export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
   const fileRef           = useRef(null)
-  const [rows, setRows]   = useState([])       // dati parsati
+  const [rows, setRows]   = useState([])       // parsed rows
   const [rowErrors, setRowErrors] = useState({}) // idx -> [errors]
   const [fileName, setFileName] = useState('')
   const [loading, setLoading]   = useState(false)
-  const [results, setResults]   = useState(null) // risposta API dopo upload
+  const [results, setResults]   = useState(null) // API response after upload
   const [dragOver, setDragOver] = useState(false)
 
   const parseFile = (file) => {
@@ -85,7 +85,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
         setResults(null)
       } catch {
         setRows([])
-        setRowErrors({ '-1': ['File non leggibile o formato non valido'] })
+        setRowErrors({ '-1': ['Unreadable file or invalid format'] })
       }
     }
     reader.readAsArrayBuffer(file)
@@ -114,7 +114,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
       setResults(r.data)
       onSuccess?.()
     } catch (err) {
-      setResults({ error: err.response?.data?.detail || 'Errore durante l\'upload' })
+      setResults({ error: err.response?.data?.detail || 'Error during upload' })
     } finally {
       setLoading(false)
     }
@@ -135,8 +135,8 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#2a2a2a]">
           <div>
-            <h2 className="font-bold text-base">Import utenti da Excel</h2>
-            <p className="text-[#555] text-xs mt-0.5">Carica un file .xlsx per creare più utenti contemporaneamente</p>
+            <h2 className="font-bold text-base">Import Users from Excel</h2>
+            <p className="text-[#555] text-xs mt-0.5">Upload a .xlsx file to create multiple users at once</p>
           </div>
           <button onClick={() => onClose()} className="text-[#555] hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -156,7 +156,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
               </p>
             </div>
             <button onClick={downloadTemplate} className={btnSec}>
-              ↓ Scarica template
+              ↓ Download template
             </button>
           </div>
 
@@ -175,28 +175,28 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
               </svg>
               {fileName
                 ? <p className="text-sm font-medium text-white">{fileName}</p>
-                : <p className="text-sm text-[#666]">Trascina un file .xlsx qui oppure <span className="text-[#f60300]">clicca per selezionarlo</span></p>
+                : <p className="text-sm text-[#666]">Drag a .xlsx file here or <span className="text-[#f60300]">click to select it</span></p>
               }
               <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
             </div>
           )}
 
-          {/* Errori di parsing globali */}
+          {/* Global parsing errors */}
           {rowErrors['-1'] && (
             <div className="rounded-md px-4 py-3 text-sm border border-[#f60300]/30 bg-[#1e0000] text-[#f60300]">
               {rowErrors['-1'][0]}
             </div>
           )}
 
-          {/* Anteprima tabella */}
+          {/* Table preview */}
           {rows.length > 0 && !results && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs uppercase tracking-widest text-[#555] font-semibold">
-                  Anteprima — {rows.length} righe
-                  {invalidCount > 0 && <span className="text-[#f60300] ml-2">({invalidCount} con errori)</span>}
+                  Preview — {rows.length} rows
+                  {invalidCount > 0 && <span className="text-[#f60300] ml-2">({invalidCount} with errors)</span>}
                 </p>
-                <button onClick={reset} className={btnSec}>Rimuovi file</button>
+                <button onClick={reset} className={btnSec}>Remove file</button>
               </div>
 
               <div className="border border-[#333] rounded-md overflow-auto max-h-72">
@@ -204,7 +204,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                   <thead>
                     <tr style={{ background: '#161616', borderBottom: '1px solid #333' }}>
                       <th className="text-left px-3 py-2.5 text-[#555] font-semibold uppercase tracking-widest">#</th>
-                      {['Username', 'Password', 'Role', 'Platform', 'Team', 'Admin', 'Super', 'Division', 'Stato'].map(h => (
+                      {['Username', 'Password', 'Role', 'Platform', 'Team', 'Admin', 'Super', 'Division', 'Status'].map(h => (
                         <th key={h} className="text-left px-3 py-2.5 text-[#555] font-semibold uppercase tracking-widest">{h}</th>
                       ))}
                     </tr>
@@ -230,13 +230,13 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                           <td className="px-3 py-2 capitalize text-[#888]">{r.role || <span className="text-[#f60300]">—</span>}</td>
                           <td className="px-3 py-2 text-[#666]">{r.platform || '—'}</td>
                           <td className="px-3 py-2 text-[#666]">{r.team_category || '—'}</td>
-                          <td className="px-3 py-2 text-[#666]">{r.is_admin ? 'Sì' : 'No'}</td>
-                          <td className="px-3 py-2 text-[#666]">{r.is_superuser ? 'Sì' : 'No'}</td>
+                          <td className="px-3 py-2 text-[#666]">{r.is_admin ? 'Yes' : 'No'}</td>
+                          <td className="px-3 py-2 text-[#666]">{r.is_superuser ? 'Yes' : 'No'}</td>
                           <td className="px-3 py-2 text-[#666]">{divName}</td>
                           <td className="px-3 py-2">
                             {ok
                               ? <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: '#001800', color: '#00c000', border: '1px solid rgba(0,192,0,0.25)' }}>OK</span>
-                              : <span title={errs.join('\n')} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded cursor-help" style={{ background: '#1e0000', color: '#f60300', border: '1px solid rgba(246,3,0,0.25)' }}>Errori</span>
+                              : <span title={errs.join('\n')} className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded cursor-help" style={{ background: '#1e0000', color: '#f60300', border: '1px solid rgba(246,3,0,0.25)' }}>Errors</span>
                             }
                           </td>
                         </tr>
@@ -246,12 +246,12 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                 </table>
               </div>
 
-              {/* Dettagli errori */}
+              {/* Error details */}
               {invalidCount > 0 && (
                 <div className="mt-3 space-y-1">
                   {Object.entries(rowErrors).filter(([k]) => k !== '-1').map(([idx, errs]) => (
                     <div key={idx} className="text-xs text-[#f60300]">
-                      Riga {parseInt(idx) + 1}: {errs.join(' · ')}
+                      Row {parseInt(idx) + 1}: {errs.join(' · ')}
                     </div>
                   ))}
                 </div>
@@ -259,7 +259,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Risultati upload */}
+          {/* Upload results */}
           {results && (
             <div>
               {results.error
@@ -268,7 +268,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                 ) : (
                   <div className="space-y-3">
                     <div className="rounded-md px-4 py-3 text-sm border border-[#00c000]/30 bg-[#001800] text-[#00c000]">
-                      Import completato — {results.created} / {results.total} utenti creati con successo
+                      Import completed — {results.created} / {results.total} users created successfully
                     </div>
                     {results.results?.some(r => !r.success) && (
                       <div className="border border-[#333] rounded-md overflow-auto max-h-48">
@@ -276,7 +276,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                           <thead>
                             <tr style={{ background: '#161616', borderBottom: '1px solid #333' }}>
                               <th className="text-left px-3 py-2 text-[#555] font-semibold uppercase tracking-widest">Username</th>
-                              <th className="text-left px-3 py-2 text-[#555] font-semibold uppercase tracking-widest">Esito</th>
+                              <th className="text-left px-3 py-2 text-[#555] font-semibold uppercase tracking-widest">Result</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -285,7 +285,7 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                                 <td className="px-3 py-2 font-medium">{r.username}</td>
                                 <td className="px-3 py-2">
                                   {r.success
-                                    ? <span className="text-[#00c000]">Creato</span>
+                                    ? <span className="text-[#00c000]">Created</span>
                                     : <span className="text-[#f60300]">{r.error}</span>
                                   }
                                 </td>
@@ -304,10 +304,10 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
           {/* Footer actions */}
           <div className="flex justify-end gap-2 pt-2 border-t border-[#2a2a2a]">
             {results
-              ? <button onClick={() => onClose(true)} className={btnPri}>Chiudi</button>
+              ? <button onClick={() => onClose(true)} className={btnPri}>Close</button>
               : (
                 <>
-                  <button onClick={() => onClose(false)} className={btnSec}>Annulla</button>
+                  <button onClick={() => onClose(false)} className={btnSec}>Cancel</button>
                   {validRows.length > 0 && (
                     <button
                       onClick={handleUpload}
@@ -315,8 +315,8 @@ export default function BulkUploadModal({ divisions, onClose, onSuccess }) {
                       className={`${btnPri} disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {loading
-                        ? 'Caricamento...'
-                        : `Crea ${validRows.length} utent${validRows.length === 1 ? 'e' : 'i'}`
+                        ? 'Uploading...'
+                        : `Create ${validRows.length} user${validRows.length === 1 ? '' : 's'}`
                       }
                     </button>
                   )}

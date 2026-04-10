@@ -71,13 +71,13 @@ export default function Home() {
 
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold mb-4">Benvenuto, {user?.username ?? 'utente'}</h1>
+          <h1 className="text-4xl font-bold mb-4">Welcome, {user?.username ?? 'user'}</h1>
           <p className="text-lg text-[#999] max-w-3xl mx-auto">
-            La piattaforma completa per la gestione e l'analisi dei dati di telemetria. 
-            Accedi ai tuoi dashboard personalizzati per monitorare prestazioni, gestire utenti e configurare il sistema.
+            The complete platform for telemetry data management and analysis.
+            Access your personalized dashboards to monitor performance, manage users, and configure the system.
           </p>
           <p className="text-sm text-[#777] mt-4">
-            Seleziona la sezione che desideri aprire. La pagina Admin è visibile solo per gli amministratori.
+            Select the section you want to open. The Admin page is visible only to administrators.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export default function Home() {
 
         <div className="mt-16 text-center">
           <p className="text-[#999] text-sm">
-            Per assistenza o domande, contatta il supporto tecnico.
+            For assistance or questions, contact technical support.
           </p>
         </div>
       </div>

@@ -77,7 +77,7 @@ export default function LiveTelemetryDashboard() {
 
   const pushHistory = (payload) => {
     const channels = payload?.channels || {}
-    const timestamp = new Date().toLocaleTimeString('it-IT', { hour12: false })
+    const timestamp = new Date().toLocaleTimeString('en-GB', { hour12: false })
     const store = historyRef.current
 
     store.labels.push(timestamp)
@@ -102,7 +102,7 @@ export default function LiveTelemetryDashboard() {
 
   const connectToPort = (targetPort) => {
     if (!targetPort || Number.isNaN(Number(targetPort))) {
-      setError('Nessuna porta valida disponibile')
+      setError('No valid port available')
       return
     }
     if (wsRef.current && wsPortRef.current === String(targetPort)) {
@@ -140,7 +140,7 @@ export default function LiveTelemetryDashboard() {
 
     ws.onerror = () => {
       setStatus('error')
-      setError('Impossibile aprire la connessione WebSocket decoded')
+      setError('Unable to open decoded WebSocket connection')
       ws.close()
     }
   }
